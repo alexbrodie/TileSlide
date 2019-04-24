@@ -107,17 +107,17 @@
 		DB663D38226F9DFA0058AFFB /* TileSlide */ = {
 			isa = PBXGroup;
 			children = (
-				DB663D39226F9DFA0058AFFB /* AppDelegate.swift */,
 				DB663D3D226F9DFA0058AFFB /* Actions.sks */,
-				DB663D3F226F9DFA0058AFFB /* GameScene.swift */,
-				DB663D3B226F9DFA0058AFFB /* GameScene.sks */,
-				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
-				DB663D71226FA2EB0058AFFB /* SliderScene.sks */,
-				DB663D41226F9DFA0058AFFB /* GameViewController.swift */,
-				DB663D43226F9DFA0058AFFB /* Main.storyboard */,
+				DB663D39226F9DFA0058AFFB /* AppDelegate.swift */,
 				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
-				DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */,
+				DB663D3B226F9DFA0058AFFB /* GameScene.sks */,
+				DB663D3F226F9DFA0058AFFB /* GameScene.swift */,
+				DB663D41226F9DFA0058AFFB /* GameViewController.swift */,
 				DB663D4B226F9DFC0058AFFB /* Info.plist */,
+				DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */,
+				DB663D43226F9DFA0058AFFB /* Main.storyboard */,
+				DB663D71226FA2EB0058AFFB /* SliderScene.sks */,
+				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
 			);
 			path = TileSlide;
 			sourceTree = "<group>";
