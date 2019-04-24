@@ -11,7 +11,7 @@ import GameplayKit
 
 class SliderScene: SKScene {
     
-    class Tile : SKShapeNode {
+    class Tile : SKSpriteNode {
         // The original column position the tile occupies
         var originalColumn: Int = -1
 
@@ -24,8 +24,10 @@ class SliderScene: SKScene {
         // The current row position the tile occupies
         var currentRow: Int = -1
         
-        convenience init(column: Int, row: Int, rect: CGRect) {
-            self.init(rect: rect)
+        convenience init(column: Int, row: Int, color: SKColor, rect: CGRect) {
+            self.init(color: color, size: rect.size)
+            self.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            self.position = CGPoint(x: rect.midX, y: rect.midY)
             self.originalColumn = column
             self.originalRow = row
             self.currentColumn = column
@@ -49,40 +51,7 @@ class SliderScene: SKScene {
     private var tiles: [[Tile]] = []
 
     override func didMove(to view: SKView) {
-        self.columns = 3
-        self.rows = 4
-        self.emptyColumn = self.columns - 1
-        self.emptyRow = self.rows - 1
-        tiles.removeAll()
-        
-        for c in 0..<self.columns {
-            tiles.append([])
-            for r in 0..<self.rows {
-                let tileNumber = c + r * self.columns;
-                
-                let rect = getRect(column: c, row: r)
-                let tile = Tile.init(column: c, row: r, rect: rect)
-                tile.lineWidth = 2
-                tile.strokeColor = SKColor.init(red: 0.75, green: 0.75, blue: 0.75, alpha: 0.5)
-                tile.fillColor = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
-                self.addChild(tile)
-                
-                let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
-                label.fontColor = SKColor.white
-                label.fontSize = rect.height / 2
-                label.horizontalAlignmentMode = .center
-                label.verticalAlignmentMode = .center
-                label.position = CGPoint(x: rect.midX, y: rect.midY)
-                tile.addChild(label)
-                
-                tiles[c].append(tile)
-            }
-        }
-        
-        let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
-        emptyTile.alpha = 0
-        
-        shuffle(count: 10 * self.columns * self.rows)
+        setup(columns: 3, rows: 4)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -93,13 +62,49 @@ class SliderScene: SKScene {
             while node != nil {
                 if let tile = node! as? Tile {
                     // Move the tile the touch was in
-                    tryMoveTile(tile)
+                    _ = tryMoveTile(tile)
                     break
                 }
                 
                 node = node!.parent
             }
         }
+    }
+    
+    private func setup(columns: Int, rows: Int) {
+        self.columns = columns
+        self.rows = rows
+        self.emptyColumn = columns - 1
+        self.emptyRow = rows - 1
+        tiles.removeAll()
+        
+        //let tex = SKTexture.init
+        
+        for c in 0..<columns {
+            tiles.append([])
+            for r in 0..<rows {
+                let tileNumber = c + r * columns;
+                
+                let rect = getRect(column: c, row: r)
+                let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
+                let tile = Tile.init(column: c, row: r, color: color, rect: rect)
+                self.addChild(tile)
+                
+                let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
+                label.fontColor = SKColor.white
+                label.fontSize = rect.height / 2
+                label.horizontalAlignmentMode = .center
+                label.verticalAlignmentMode = .center
+                tile.addChild(label)
+                
+                tiles[c].append(tile)
+            }
+        }
+        
+        let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
+        emptyTile.alpha = 0
+        
+        shuffle()
     }
     
     // Get the rectangle for the given grid coordinate
@@ -169,7 +174,7 @@ class SliderScene: SKScene {
         // Move the specified tile into the empty area
         tile.currentColumn = self.emptyColumn
         tile.currentRow = self.emptyRow
-        self.tiles[self.emptyColumn][self.emptyRow] = tile;
+        self.tiles[self.emptyColumn][self.emptyRow] = tile
 
         // And the empty tile gets swapped into the other location
         emptyTile.currentColumn = column
@@ -179,38 +184,41 @@ class SliderScene: SKScene {
         self.emptyRow = row
         
         // Figure out the new tile position (for the visible one)
-        // TODO: Figure out a better way to move absolutely... currently everything seems
-        // relative to after it was initially added
-        let oldRect = self.getRect(column: tile.originalColumn, row: tile.originalRow)
         let newRect = self.getRect(column: tile.currentColumn, row: tile.currentRow)
-        let newX = newRect.minX - oldRect.minX
-        let newY = newRect.minY - oldRect.minY
+        let newX = newRect.midX
+        let newY = newRect.midY
         
         // Animate the tile position
-        tile.run(SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.25))
+        tile.run(SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.1))
         
         if isSolved() {
             // Show the empty tile to complete the puzzle
-            emptyTile.run(SKAction.fadeAlpha(to: 1, duration: 0.25))
+            emptyTile.run(SKAction.sequence([
+                SKAction.fadeAlpha(to: 1, duration: 0.25),
+                SKAction.wait(forDuration: 0.75),
+                SKAction.fadeAlpha(to: 0, duration: 0.25),
+                SKAction.run { self.shuffle() }
+                ]))
             
             // Loop over each tile...
-            for child in self.children {
+            /*for child in self.children {
                 if let tile = child as? Tile {
-                    tile.run(SKAction.sequence([
-                        SKAction.wait(forDuration: 0.25),
-                        SKAction.run {
-                            tile.strokeColor = SKColor.green
-                        }
-                        ]))
                 }
-            }
+            }*/
         } else {
-            
+            // Not solved yet
+            // TODO: add haptic feedback?
         }
         
         return true
     }
     
+    // Shuffle the board
+    private func shuffle() {
+        shuffle(count: 10 * self.columns * self.rows)
+    }
+    
+    // Shuffles the board by making count moves
     private func shuffle(count: Int) {
         var shuffleCount: Int = 0
         var lastDirection: Int = 42;  // Something out of bounds [-2,5]
