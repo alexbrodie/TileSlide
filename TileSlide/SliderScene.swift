@@ -68,6 +68,8 @@ class SliderScene: SKScene {
                 self.addChild(tile)
                 
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
+                label.fontColor = SKColor.white
+                label.fontSize = rect.height / 2
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
                 label.position = CGPoint(x: rect.midX, y: rect.midY)
