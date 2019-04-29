@@ -9,6 +9,46 @@
 import SpriteKit
 import GameplayKit
 
+extension UIImage {
+    public func rotate(degrees: CGFloat) -> UIImage {
+        // Calculate the size of the rotated view's containing box for our drawing space
+        let rotatedViewBox: UIView = UIView(frame: CGRect(x: 0, y: 0, width: self.size.width, height: self.size.height))
+        rotatedViewBox.transform = CGAffineTransform(rotationAngle: degrees * CGFloat.pi / 180)
+        let rotatedSize: CGSize = rotatedViewBox.frame.size
+
+        UIGraphicsBeginImageContext(rotatedSize)
+
+        // Create the bitmap context
+        let bitmap: CGContext = UIGraphicsGetCurrentContext()!
+
+        // Move the origin to the middle of the image so we will rotate and scale around the center.
+        bitmap.translateBy(x: rotatedSize.width / 2, y: rotatedSize.height / 2)
+
+        // Rotate the image context
+        bitmap.rotate(by: (degrees * CGFloat.pi / 180))
+
+        // Now, draw the rotated/scaled image into the context
+        bitmap.scaleBy(x: 1.0, y: -1.0)
+        bitmap.draw(self.cgImage!, in: CGRect(x: -self.size.width / 2, y: -self.size.height / 2, width: self.size.width, height: self.size.height))
+        let newImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+
+        UIGraphicsEndImageContext()
+
+        return newImage
+    }
+    
+    public func crop(rect: CGRect) -> UIImage {
+        var rect = rect
+        rect.origin.x *= self.scale
+        rect.origin.y *= self.scale
+        rect.size.width *= self.scale
+        rect.size.height *= self.scale
+        
+        let imageRef = self.cgImage!.cropping(to: rect)
+        return UIImage.init(cgImage: imageRef!, scale: self.scale, orientation: self.imageOrientation)
+    }
+}
+
 class SliderScene: SKScene {
     
     class Tile : SKSpriteNode {
@@ -23,16 +63,6 @@ class SliderScene: SKScene {
         
         // The current row position the tile occupies
         var currentRow: Int = -1
-        
-        convenience init(column: Int, row: Int, color: SKColor, rect: CGRect) {
-            self.init(color: color, size: rect.size)
-            self.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-            self.position = CGPoint(x: rect.midX, y: rect.midY)
-            self.originalColumn = column
-            self.originalRow = row
-            self.currentColumn = column
-            self.currentRow = row
-        }
     }
     
     // The total number of columns
@@ -51,7 +81,7 @@ class SliderScene: SKScene {
     private var tiles: [[Tile]] = []
 
     override func didMove(to view: SKView) {
-        setup(columns: 3, rows: 4)
+        setup(columns: 3, rows: 3)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -78,7 +108,19 @@ class SliderScene: SKScene {
         self.emptyRow = rows - 1
         tiles.removeAll()
         
-        //let tex = SKTexture.init
+        var tex: SKTexture?;
+        if var img = UIImage.init(named: "sample") {
+            // If aspect ratio of image is different from area we're displaying in, rotate it
+            let imgSize = img.size
+            let frameSize = self.frame.size
+            if (imgSize.width > imgSize.height) != (frameSize.width > frameSize.height) {
+                img = img.rotate(degrees: 90)
+            }
+            
+            // TODO: crop to prevent squishing image
+
+            tex = SKTexture.init(image: img)
+        }
         
         for c in 0..<columns {
             tiles.append([])
@@ -86,13 +128,29 @@ class SliderScene: SKScene {
                 let tileNumber = c + r * columns;
                 
                 let rect = getRect(column: c, row: r)
-                let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
-                let tile = Tile.init(column: c, row: r, color: color, rect: rect)
+                var tile: Tile
+                if tex != nil {
+                    let subTexRect = CGRect.init(x: CGFloat(c) / CGFloat(columns),
+                                                 y: CGFloat(rows - r - 1) / CGFloat(rows),
+                                                 width: 1.0 / CGFloat(columns),
+                                                 height: 1.0 / CGFloat(rows))
+                    let subTex = SKTexture.init(rect: subTexRect, in: tex!)
+                    tile = Tile.init(texture: subTex, size: rect.size)
+                } else {
+                    let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
+                    tile = Tile.init(color: color, size: rect.size)
+                }
+                tile.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+                tile.position = CGPoint(x: rect.midX, y: rect.midY)
+                tile.originalColumn = c
+                tile.originalRow = r
+                tile.currentColumn = c
+                tile.currentRow = r
                 self.addChild(tile)
                 
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
                 label.fontColor = SKColor.white
-                label.fontSize = rect.height / 2
+                label.fontSize = rect.height * 0.4
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
                 tile.addChild(label)
@@ -104,7 +162,7 @@ class SliderScene: SKScene {
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
         emptyTile.alpha = 0
         
-        shuffle()
+        //shuffle()
     }
     
     // Get the rectangle for the given grid coordinate
@@ -195,22 +253,30 @@ class SliderScene: SKScene {
             // Show the empty tile to complete the puzzle
             emptyTile.run(SKAction.sequence([
                 SKAction.fadeAlpha(to: 1, duration: 0.25),
-                SKAction.wait(forDuration: 0.75),
+                SKAction.wait(forDuration: 2),
                 SKAction.fadeAlpha(to: 0, duration: 0.25),
                 SKAction.run { self.shuffle() }
                 ]))
-            
-            // Loop over each tile...
-            /*for child in self.children {
-                if let tile = child as? Tile {
-                }
-            }*/
+
+            self.setLabelAlpha(alpha: 0)
         } else {
             // Not solved yet
             // TODO: add haptic feedback?
         }
         
         return true
+    }
+    
+    private func setLabelAlpha(alpha: CGFloat) {
+        for child in self.children {
+            if let tile = child as? Tile {
+                for child2 in tile.children {
+                    if let label = child2 as? SKLabelNode {
+                        label.run(SKAction.fadeAlpha(to: alpha, duration: 0.25))
+                    }
+                }
+            }
+        }
     }
     
     // Shuffle the board
@@ -245,6 +311,8 @@ class SliderScene: SKScene {
                 shuffleCount += 1
             }
         }
+        
+        self.setLabelAlpha(alpha: 1)
     }
     
     // Returns true iff the puzzle has been solved
