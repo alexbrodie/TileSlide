@@ -6,8 +6,9 @@
 //  Copyright © 2019 Alex Brodie. All rights reserved.
 //
 
-import SpriteKit
+import CoreMotion
 import GameplayKit
+import SpriteKit
 
 extension UIImage {
     public func rotate(degrees: CGFloat) -> UIImage {
@@ -79,9 +80,59 @@ class SliderScene: SKScene {
     
     // A 2D array of tiles indexed by current position
     private var tiles: [[Tile]] = []
+    
+    private var motion: CMMotionManager = CMMotionManager()
+    
+    private var debugText: SKLabelNode? = nil
 
     override func didMove(to view: SKView) {
-        setup(columns: 3, rows: 3)
+        if self.motion.isDeviceMotionAvailable {
+            self.motion.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
+        }
+
+        self.makeDebugText()
+        
+        self.setup(columns: 3, rows: 3)
+    }
+    
+    override func update(_ currentTime: TimeInterval) {
+        if let data = self.motion.deviceMotion {
+            let yaw = data.attitude.yaw
+            let pitch = data.attitude.pitch
+            let roll = data.attitude.roll
+            if let debugText = self.debugText {
+                debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
+            }
+            
+            // Negative pitch == tilt forward
+            // Positive pitch == tilt backward
+            // Negative roll == tilt left
+            // Positive roll == tilt right
+            
+            let threshold = 0.4
+            var shifted = false
+            
+            if abs(pitch) > abs(roll) {
+                // More pitch than roll
+                if pitch < -threshold {
+                    shifted = self.shiftUp()
+                } else if pitch > threshold {
+                    shifted = self.shiftDown()
+                }
+            }
+            
+            if !shifted {
+                if roll < -threshold {
+                    shifted = self.shiftLeft()
+                } else if roll > threshold {
+                    shifted = self.shiftRight()
+                }
+            }
+            
+            if shifted {
+                
+            }
+        }
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -99,6 +150,26 @@ class SliderScene: SKScene {
                 node = node!.parent
             }
         }
+    }
+    
+    private func makeDebugText() {
+        let size = CGSize.init(width: self.frame.width, height: self.frame.height * 0.03)
+        
+        let label = SKLabelNode.init(text: "Debug\nText");
+        label.fontSize = size.height * 0.75
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.fontColor = .black
+        label.position = CGPoint.init(x: size.width * -0.45, y: 0)
+        
+        let parent = SKSpriteNode.init(color: UIColor.init(red: 1, green: 1, blue: 1, alpha: 0.5), size: size)
+        parent.position = CGPoint.init(x: 0, y: self.frame.minY + size.height)
+        parent.zPosition = 1000
+        
+        parent.addChild(label)
+        self.addChild(parent)
+        
+        self.debugText = label
     }
     
     private func setup(columns: Int, rows: Int) {
@@ -153,6 +224,7 @@ class SliderScene: SKScene {
                 label.fontSize = rect.height * 0.4
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
+                label.zPosition = 1
                 tile.addChild(label)
                 
                 tiles[c].append(tile)
@@ -162,7 +234,7 @@ class SliderScene: SKScene {
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
         emptyTile.alpha = 0
         
-        //shuffle()
+        shuffle()
     }
     
     // Get the rectangle for the given grid coordinate
@@ -178,25 +250,43 @@ class SliderScene: SKScene {
     // Moves the specified tile if possible
     private func tryMoveTile(_ tile: Tile) -> Bool {
         if tile.currentColumn == self.emptyColumn {
-            if tile.currentRow < self.emptyRow {
+            let verticalMoves = tile.currentRow - self.emptyRow
+            if verticalMoves < 0 {
                 // Shift down emptyRow - currentRow times
-                return self.shiftDown()
-            } else {
+                for _ in verticalMoves...(-1) {
+                    let shifted = self.shiftDown()
+                    assert(shifted, "Couldn't shift down")
+                }
+                return true
+            } else if verticalMoves > 0 {
                 // Shift up currentRow - emptyRow times
-                return self.shiftUp()
+                for _ in 1...verticalMoves {
+                    let shifted = self.shiftUp()
+                    assert(shifted, "Couldn't shift up")
+                }
+                return true
             }
         } else if tile.currentRow == self.emptyRow {
-            if tile.currentColumn < self.emptyColumn {
+            let horizontalMoves = tile.currentColumn - self.emptyColumn
+            if horizontalMoves < 0 {
                 // Shift right emptyColumn - currentColumn times
-                return self.shiftRight()
-            } else {
+                for _ in horizontalMoves...(-1) {
+                    let shifted = self.shiftRight()
+                    assert(shifted, "Couldn't shift right")
+                }
+                return true
+            } else if horizontalMoves > 0 {
                 // Shift left currentColumn - emptyColumn times
-                return self.shiftLeft()
+                for _ in 1...horizontalMoves {
+                    let shifted = self.shiftLeft()
+                    assert(shifted, "Couldn't shift left")
+                }
+                return true
             }
-        } else {
-            // Can't move
-            return false
         }
+
+        // Can't move
+        return false
     }
     
     // Move one tile left into empty slot if possible
