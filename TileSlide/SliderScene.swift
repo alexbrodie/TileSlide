@@ -81,7 +81,11 @@ class SliderScene: SKScene {
     // A 2D array of tiles indexed by current position
     private var tiles: [[Tile]] = []
     
+    // Object to fetch accelerometer/gyro data
     private var motion: CMMotionManager = CMMotionManager()
+    
+    // Last time that tilting the device shifted a tile
+    private var lastTiltShift: Date = Date.init()
     
     private var debugText: SKLabelNode? = nil
 
@@ -96,41 +100,47 @@ class SliderScene: SKScene {
     }
     
     override func update(_ currentTime: TimeInterval) {
+        let tiltDelay = 0.5
+        let pitchOffset = -0.75
+        let tiltThreshold = 0.25
+
         if let data = self.motion.deviceMotion {
-            let yaw = data.attitude.yaw
-            let pitch = data.attitude.pitch
-            let roll = data.attitude.roll
-            if let debugText = self.debugText {
-                debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
-            }
-            
-            // Negative pitch == tilt forward
-            // Positive pitch == tilt backward
-            // Negative roll == tilt left
-            // Positive roll == tilt right
-            
-            let threshold = 0.4
-            var shifted = false
-            
-            if abs(pitch) > abs(roll) {
-                // More pitch than roll
-                if pitch < -threshold {
-                    shifted = self.shiftUp()
-                } else if pitch > threshold {
-                    shifted = self.shiftDown()
+            // Wait this long between processing tilt shifts
+            let now = Date.init()
+            if self.lastTiltShift + tiltDelay < now {
+                let yaw = data.attitude.yaw
+                let pitch = data.attitude.pitch + pitchOffset
+                let roll = data.attitude.roll
+                if let debugText = self.debugText {
+                    debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
                 }
-            }
-            
-            if !shifted {
-                if roll < -threshold {
-                    shifted = self.shiftLeft()
-                } else if roll > threshold {
-                    shifted = self.shiftRight()
-                }
-            }
-            
-            if shifted {
                 
+                var shifted = false
+               
+                // Only process one direction whichever is greatest
+                if abs(pitch) > abs(roll) {
+                    if pitch < -tiltThreshold {
+                        // Negative pitch == tilt forward
+                        shifted = self.shiftUp()
+                    } else if pitch > tiltThreshold {
+                        // Positive pitch == tilt backward
+                        shifted = self.shiftDown()
+                    }
+                }
+                
+                if !shifted {
+                    if roll < -tiltThreshold {
+                        // Negative roll == tilt left
+                        shifted = self.shiftLeft()
+                    } else if roll > tiltThreshold {
+                        // Positive roll == tilt right
+                        shifted = self.shiftRight()
+                    }
+                }
+                
+                if shifted {
+                    self.lastTiltShift = now
+                }
             }
         }
     }
