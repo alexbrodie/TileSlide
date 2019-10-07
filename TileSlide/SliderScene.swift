@@ -81,12 +81,16 @@ class SliderScene: SKScene {
     // A 2D array of tiles indexed by current position
     private var tiles: [[Tile]] = []
     
+    // Generator for feedback, e.g. haptics
+    private var feedback: UIImpactFeedbackGenerator = UIImpactFeedbackGenerator.init(style: .medium)
+    
     // Object to fetch accelerometer/gyro data
     private var motion: CMMotionManager = CMMotionManager()
     
     // Last time that tilting the device shifted a tile
     private var lastTiltShift: Date = Date.init()
     
+    // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
 
     override func didMove(to view: SKView) {
@@ -139,6 +143,7 @@ class SliderScene: SKScene {
                 }
                 
                 if shifted {
+                    feedback.impactOccurred()
                     self.lastTiltShift = now
                 }
             }
