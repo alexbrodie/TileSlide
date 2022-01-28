@@ -97,6 +97,7 @@ class SliderScene: SKScene {
     private var debugText: SKLabelNode? = nil
 
     override func didMove(to view: SKView) {
+        self.backgroundColor = UIColor.black
         //self.setEnableTiltToSlide(true);
         //self.makeDebugText()
         self.setup(columns: 3, rows: 4)
@@ -282,13 +283,8 @@ class SliderScene: SKScene {
             }
         }
         
-        //let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
-        //emptyTile.alpha = 0
-        
         self.fullShuffle()
         
-        //for column in tiles {
-        //    for tile in column {
         for c in 0..<columns {
             for r in 0..<rows {
                 let tile = tiles[c][r];
