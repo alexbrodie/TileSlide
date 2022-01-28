@@ -213,7 +213,7 @@ class SliderScene: SKScene {
             for r in 0..<rows {
                 let tileNumber = c + r * columns;
                 
-                let rect = getRect(column: c, row: r)
+                let rect = getTileRect(column: c, row: r)
                 var tile: Tile
                 if tex != nil {
                     let subTexRect = CGRect.init(x: CGFloat(c) / CGFloat(columns),
@@ -253,13 +253,25 @@ class SliderScene: SKScene {
     }
     
     // Get the rectangle for the given grid coordinate
-    private func getRect(column: Int, row: Int) -> CGRect {
+    private func getTileRect(column: Int, row: Int) -> CGRect {
         let f = self.frame
         let tileWidth = f.width / CGFloat(self.columns)
         let tileHeight = f.height / CGFloat(self.rows)
         let x = f.minX + CGFloat(column) * tileWidth
         let y = f.minY + CGFloat(self.rows - row - 1) * tileHeight
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
+    }
+    
+    private func setLabelAlpha(alpha: CGFloat) {
+        for child in self.children {
+            if let tile = child as? Tile {
+                for child2 in tile.children {
+                    if let label = child2 as? SKLabelNode {
+                        label.run(SKAction.fadeAlpha(to: alpha, duration: 0.25))
+                    }
+                }
+            }
+        }
     }
     
     // Moves the specified tile if possible
@@ -302,6 +314,42 @@ class SliderScene: SKScene {
 
         // Can't move
         return false
+    }
+    
+    // Shuffle the board
+    private func shuffle() {
+        shuffle(count: 10 * self.columns * self.rows)
+    }
+    
+    // Shuffles the board by making count moves
+    private func shuffle(count: Int) {
+        var shuffleCount: Int = 0
+        var lastDirection: Int = 42;  // Something out of bounds [-2,5]
+        
+        while shuffleCount < count {
+            let direction = Int.random(in: 0..<4) // NESW
+            
+            var shifted: Bool = false
+
+            // Disallow the reverse of the previous - no left then right or up then down.
+            // Values were chosen such that this means not a difference of 2
+            if abs(direction - lastDirection) != 2 {
+                switch direction {
+                case 0: shifted = shiftUp()
+                case 1: shifted = shiftRight()
+                case 2: shifted = shiftDown()
+                case 3: shifted = shiftLeft()
+                default: assert(false, "unexpected direction")
+                }
+            }
+
+            if shifted {
+                lastDirection = direction
+                shuffleCount += 1
+            }
+        }
+        
+        self.setLabelAlpha(alpha: 1)
     }
     
     // Move one tile left into empty slot if possible
@@ -347,7 +395,7 @@ class SliderScene: SKScene {
         self.emptyRow = row
         
         // Figure out the new tile position (for the visible one)
-        let newRect = self.getRect(column: tile.currentColumn, row: tile.currentRow)
+        let newRect = self.getTileRect(column: tile.currentColumn, row: tile.currentRow)
         let newX = newRect.midX
         let newY = newRect.midY
         
@@ -370,54 +418,6 @@ class SliderScene: SKScene {
         }
         
         return true
-    }
-    
-    private func setLabelAlpha(alpha: CGFloat) {
-        for child in self.children {
-            if let tile = child as? Tile {
-                for child2 in tile.children {
-                    if let label = child2 as? SKLabelNode {
-                        label.run(SKAction.fadeAlpha(to: alpha, duration: 0.25))
-                    }
-                }
-            }
-        }
-    }
-    
-    // Shuffle the board
-    private func shuffle() {
-        shuffle(count: 10 * self.columns * self.rows)
-    }
-    
-    // Shuffles the board by making count moves
-    private func shuffle(count: Int) {
-        var shuffleCount: Int = 0
-        var lastDirection: Int = 42;  // Something out of bounds [-2,5]
-        
-        while shuffleCount < count {
-            let direction = Int.random(in: 0..<4) // NESW
-            
-            var shifted: Bool = false
-
-            // Disallow the reverse of the previous - no left then right or up then down.
-            // Values were chosen such that this means not a difference of 2
-            if abs(direction - lastDirection) != 2 {
-                switch direction {
-                case 0: shifted = shiftUp()
-                case 1: shifted = shiftRight()
-                case 2: shifted = shiftDown()
-                case 3: shifted = shiftLeft()
-                default: assert(false, "unexpected direction")
-                }
-            }
-
-            if shifted {
-                lastDirection = direction
-                shuffleCount += 1
-            }
-        }
-        
-        self.setLabelAlpha(alpha: 1)
     }
     
     // Returns true iff the puzzle has been solved
