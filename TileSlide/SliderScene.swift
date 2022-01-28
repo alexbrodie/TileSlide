@@ -316,12 +316,15 @@ class SliderScene: SKScene {
     }
     
     private func fullShuffle() {
-        let oldAnimateSlide: Bool = self.animateSlide
+        let oldAnimateSlide = self.animateSlide
         self.animateSlide = false
-        
+        defer { self.animateSlide = oldAnimateSlide }
+
+        let oldIsPaused = self.isPaused
+        self.isPaused = true
+        defer { self.isPaused = oldIsPaused }
+
         shuffle()
-        
-        self.animateSlide = oldAnimateSlide
     }
     
     // Get the rectangle for the given grid coordinate
