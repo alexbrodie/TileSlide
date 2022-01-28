@@ -8,9 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		DB663D3A226F9DFA0058AFFB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D39226F9DFA0058AFFB /* AppDelegate.swift */; };
-		DB663D3C226F9DFA0058AFFB /* GameScene.sks in Resources */ = {isa = PBXBuildFile; fileRef = DB663D3B226F9DFA0058AFFB /* GameScene.sks */; };
 		DB663D3E226F9DFA0058AFFB /* Actions.sks in Resources */ = {isa = PBXBuildFile; fileRef = DB663D3D226F9DFA0058AFFB /* Actions.sks */; };
-		DB663D40226F9DFA0058AFFB /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D3F226F9DFA0058AFFB /* GameScene.swift */; };
 		DB663D42226F9DFA0058AFFB /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D41226F9DFA0058AFFB /* GameViewController.swift */; };
 		DB663D45226F9DFA0058AFFB /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DB663D43226F9DFA0058AFFB /* Main.storyboard */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
@@ -41,9 +39,7 @@
 /* Begin PBXFileReference section */
 		DB663D36226F9DFA0058AFFB /* TileSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TileSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB663D39226F9DFA0058AFFB /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		DB663D3B226F9DFA0058AFFB /* GameScene.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = GameScene.sks; sourceTree = "<group>"; };
 		DB663D3D226F9DFA0058AFFB /* Actions.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = Actions.sks; sourceTree = "<group>"; };
-		DB663D3F226F9DFA0058AFFB /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 		DB663D41226F9DFA0058AFFB /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
 		DB663D44226F9DFA0058AFFB /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		DB663D46226F9DFC0058AFFB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -110,8 +106,6 @@
 				DB663D3D226F9DFA0058AFFB /* Actions.sks */,
 				DB663D39226F9DFA0058AFFB /* AppDelegate.swift */,
 				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
-				DB663D3B226F9DFA0058AFFB /* GameScene.sks */,
-				DB663D3F226F9DFA0058AFFB /* GameScene.swift */,
 				DB663D41226F9DFA0058AFFB /* GameViewController.swift */,
 				DB663D4B226F9DFC0058AFFB /* Info.plist */,
 				DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */,
@@ -245,7 +239,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB663D45226F9DFA0058AFFB /* Main.storyboard in Resources */,
-				DB663D3C226F9DFA0058AFFB /* GameScene.sks in Resources */,
 				DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */,
 				DB663D4A226F9DFC0058AFFB /* LaunchScreen.storyboard in Resources */,
 				DB663D3E226F9DFA0058AFFB /* Actions.sks in Resources */,
@@ -274,7 +267,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB663D40226F9DFA0058AFFB /* GameScene.swift in Sources */,
 				DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */,
 				DB663D42226F9DFA0058AFFB /* GameViewController.swift in Sources */,
 				DB663D3A226F9DFA0058AFFB /* AppDelegate.swift in Sources */,
