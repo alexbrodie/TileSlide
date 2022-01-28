@@ -55,52 +55,51 @@ class SliderScene: SKScene {
     class Tile : SKSpriteNode {
         // The original column position the tile occupies
         var originalColumn: Int = -1
-
         // The original row position the tile occupies
         var originalRow: Int = -1
-
         // The current column position the tile occupies
         var currentColumn: Int = -1
-        
         // The current row position the tile occupies
         var currentRow: Int = -1
     }
     
+    // True if impact feedback should be used
+    private var enableHaptics: Bool = true
+    // True if tilting device should be used as an input to slide tiles
+    private var enableTiltToSlide: Bool = false;
+    // Color for the labels that contain the number of each tile
+    private var numberLabelTextColor: UIColor = UIColor.init(white: 0.82, alpha: 0.5)
+
     // The total number of columns
     private var columns: Int = 0
-
     // The total number or rows
     private var rows: Int = 0
-    
     // The column of the currently unoccupied tile
     private var emptyColumn: Int = -1
-    
     // The row of the currently unoccupied tile
     private var emptyRow: Int = -1
-    
     // A 2D array of tiles indexed by current position
     private var tiles: [[Tile]] = []
     
+    // Used when doing a batch operation to disable animations and feedback
+    // for any slide operations
+    private var animateSlide: Bool = true
+    
     // Generator for feedback, e.g. haptics
-    private var feedback: UIImpactFeedbackGenerator = UIImpactFeedbackGenerator.init(style: .medium)
+    private var impactFeedback: UIImpactFeedbackGenerator? = nil
     
     // Object to fetch accelerometer/gyro data
-    private var motion: CMMotionManager = CMMotionManager()
-    
-    // Last time that tilting the device shifted a tile
+    private var motionManager: CMMotionManager? = nil
+    // Last time that tilting the device slid a tile
     private var lastTiltShift: Date = Date.init()
     
     // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
 
     override func didMove(to view: SKView) {
-        if self.motion.isDeviceMotionAvailable {
-            self.motion.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
-        }
-
-        self.makeDebugText()
-        
-        self.setup(columns: 3, rows: 3)
+        //self.setEnableTiltToSlide(true);
+        //self.makeDebugText()
+        self.setup(columns: 3, rows: 4)
     }
     
     override func update(_ currentTime: TimeInterval) {
@@ -108,43 +107,44 @@ class SliderScene: SKScene {
         let pitchOffset = -0.75
         let tiltThreshold = 0.25
 
-        if let data = self.motion.deviceMotion {
-            // Wait this long between processing tilt shifts
-            let now = Date.init()
-            if self.lastTiltShift + tiltDelay < now {
-                let yaw = data.attitude.yaw
-                let pitch = data.attitude.pitch + pitchOffset
-                let roll = data.attitude.roll
-                if let debugText = self.debugText {
-                    debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
-                }
-                
-                var shifted = false
-               
-                // Only process one direction whichever is greatest
-                if abs(pitch) > abs(roll) {
-                    if pitch < -tiltThreshold {
-                        // Negative pitch == tilt forward
-                        shifted = self.shiftUp()
-                    } else if pitch > tiltThreshold {
-                        // Positive pitch == tilt backward
-                        shifted = self.shiftDown()
+        if self.enableTiltToSlide {
+            if let data = self.motionManager!.deviceMotion {
+                // Wait this long between processing tilt slides
+                let now = Date.init()
+                if self.lastTiltShift + tiltDelay < now {
+                    let yaw = data.attitude.yaw
+                    let pitch = data.attitude.pitch + pitchOffset
+                    let roll = data.attitude.roll
+                    if let debugText = self.debugText {
+                        debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
                     }
-                }
-                
-                if !shifted {
-                    if roll < -tiltThreshold {
-                        // Negative roll == tilt left
-                        shifted = self.shiftLeft()
-                    } else if roll > tiltThreshold {
-                        // Positive roll == tilt right
-                        shifted = self.shiftRight()
+                    
+                    var slid = false
+                   
+                    // Only process one direction whichever is greatest
+                    if abs(pitch) > abs(roll) {
+                        if pitch < -tiltThreshold {
+                            // Negative pitch == tilt forward
+                            slid = self.slideUp()
+                        } else if pitch > tiltThreshold {
+                            // Positive pitch == tilt backward
+                            slid = self.slideDown()
+                        }
                     }
-                }
-                
-                if shifted {
-                    feedback.impactOccurred()
-                    self.lastTiltShift = now
+                    
+                    if !slid {
+                        if roll < -tiltThreshold {
+                            // Negative roll == tilt left
+                            slid = self.slideLeft()
+                        } else if roll > tiltThreshold {
+                            // Positive roll == tilt right
+                            slid = self.slideRight()
+                        }
+                    }
+                    
+                    if slid {
+                        self.lastTiltShift = now
+                    }
                 }
             }
         }
@@ -158,11 +158,46 @@ class SliderScene: SKScene {
             while node != nil {
                 if let tile = node! as? Tile {
                     // Move the tile the touch was in
-                    _ = tryMoveTile(tile)
+                    _ = trySlideTile(tile)
                     break
                 }
                 
                 node = node!.parent
+            }
+        }
+    }
+    
+    private func setEnableTiltToSlide(_ enable: Bool) {
+        self.enableTiltToSlide = enable;
+        if enable {
+            self.startDeviceMotionUpdates()
+        } else {
+            self.stopDeviceMotionUpdates()
+        }
+    }
+    
+    private func startDeviceMotionUpdates() {
+        if self.motionManager == nil {
+            self.motionManager = CMMotionManager()
+        }
+        if self.motionManager!.isDeviceMotionAvailable {
+            self.motionManager!.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
+        }
+    }
+    
+    private func stopDeviceMotionUpdates() {
+        self.motionManager?.stopDeviceMotionUpdates()
+    }
+    
+    private func impactOccurred() {
+        if self.enableHaptics {
+            if self.impactFeedback == nil {
+                self.impactFeedback = UIImpactFeedbackGenerator.init(style: .medium)
+            }
+            if #available(iOS 13.0, *) {
+                self.impactFeedback!.impactOccurred(intensity: 0.3)
+            } else {
+                self.impactFeedback!.impactOccurred()
             }
         }
     }
@@ -192,7 +227,7 @@ class SliderScene: SKScene {
         self.rows = rows
         self.emptyColumn = columns - 1
         self.emptyRow = rows - 1
-        tiles.removeAll()
+        self.tiles.removeAll()
         
         var tex: SKTexture?;
         if var img = UIImage.init(named: "sample") {
@@ -209,7 +244,7 @@ class SliderScene: SKScene {
         }
         
         for c in 0..<columns {
-            tiles.append([])
+            self.tiles.append([])
             for r in 0..<rows {
                 let tileNumber = c + r * columns;
                 
@@ -226,6 +261,7 @@ class SliderScene: SKScene {
                     let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
                     tile = Tile.init(color: color, size: rect.size)
                 }
+                tile.alpha = 0
                 tile.anchorPoint = CGPoint(x: 0.5, y: 0.5)
                 tile.position = CGPoint(x: rect.midX, y: rect.midY)
                 tile.originalColumn = c
@@ -233,9 +269,9 @@ class SliderScene: SKScene {
                 tile.currentColumn = c
                 tile.currentRow = r
                 self.addChild(tile)
-                
+
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
-                label.fontColor = SKColor.white
+                label.fontColor = self.numberLabelTextColor
                 label.fontSize = rect.height * 0.4
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
@@ -246,10 +282,50 @@ class SliderScene: SKScene {
             }
         }
         
+        //let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
+        //emptyTile.alpha = 0
+        
+        self.fullShuffle()
+        
+        //for column in tiles {
+        //    for tile in column {
+        for c in 0..<columns {
+            for r in 0..<rows {
+                let tile = tiles[c][r];
+                if tile.currentColumn != self.emptyColumn || tile.currentRow != self.emptyRow {
+                    let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1);
+                    tile.run(SKAction.sequence([
+                        SKAction.wait(forDuration: tilePercentile * 0.2),
+                        SKAction.fadeAlpha(to: 1, duration: 0.3)
+                    ]))
+                }
+            }
+        }
+    }
+    
+    private func solved() {
+        self.setLabelAlpha(0)
+
+        // Show the empty tile to complete the puzzle
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
-        emptyTile.alpha = 0
+        emptyTile.run(SKAction.sequence([
+            SKAction.fadeAlpha(to: 1, duration: 0.25),
+            SKAction.wait(forDuration: 2),
+            SKAction.fadeAlpha(to: 0, duration: 0.25),
+            SKAction.run {
+                self.fullShuffle()
+                self.setLabelAlpha(1)
+            },
+            ]))
+    }
+    
+    private func fullShuffle() {
+        let oldAnimateSlide: Bool = self.animateSlide
+        self.animateSlide = false
         
         shuffle()
+        
+        self.animateSlide = oldAnimateSlide
     }
     
     // Get the rectangle for the given grid coordinate
@@ -262,7 +338,7 @@ class SliderScene: SKScene {
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
-    private func setLabelAlpha(alpha: CGFloat) {
+    private func setLabelAlpha(_ alpha: CGFloat) {
         for child in self.children {
             if let tile = child as? Tile {
                 for child2 in tile.children {
@@ -274,22 +350,56 @@ class SliderScene: SKScene {
         }
     }
     
+    // Shuffle the board
+    private func shuffle() {
+        shuffle(10 * self.columns * self.rows)
+    }
+    
+    // Shuffles the board by making count moves
+    private func shuffle(_ count: Int) {
+        var shuffleCount: Int = 0
+        var lastDirection: Int = 42;  // Something out of bounds [-2,5]
+        
+        while shuffleCount < count {
+            let direction = Int.random(in: 0..<4) // NESW
+            
+            var slid: Bool = false
+
+            // Disallow the reverse of the previous - no left then right or up then down.
+            // Values were chosen such that this means not a difference of 2
+            if abs(direction - lastDirection) != 2 {
+                switch direction {
+                case 0: slid = slideUp()
+                case 1: slid = slideRight()
+                case 2: slid = slideDown()
+                case 3: slid = slideLeft()
+                default: assert(false, "unexpected direction")
+                }
+            }
+
+            if slid {
+                lastDirection = direction
+                shuffleCount += 1
+            }
+        }
+    }
+    
     // Moves the specified tile if possible
-    private func tryMoveTile(_ tile: Tile) -> Bool {
+    private func trySlideTile(_ tile: Tile) -> Bool {
         if tile.currentColumn == self.emptyColumn {
             let verticalMoves = tile.currentRow - self.emptyRow
             if verticalMoves < 0 {
                 // Shift down emptyRow - currentRow times
                 for _ in verticalMoves...(-1) {
-                    let shifted = self.shiftDown()
-                    assert(shifted, "Couldn't shift down")
+                    let slid = self.slideDown()
+                    assert(slid, "Couldn't slide down")
                 }
                 return true
             } else if verticalMoves > 0 {
                 // Shift up currentRow - emptyRow times
                 for _ in 1...verticalMoves {
-                    let shifted = self.shiftUp()
-                    assert(shifted, "Couldn't shift up")
+                    let slid = self.slideUp()
+                    assert(slid, "Couldn't slide up")
                 }
                 return true
             }
@@ -298,15 +408,15 @@ class SliderScene: SKScene {
             if horizontalMoves < 0 {
                 // Shift right emptyColumn - currentColumn times
                 for _ in horizontalMoves...(-1) {
-                    let shifted = self.shiftRight()
-                    assert(shifted, "Couldn't shift right")
+                    let slid = self.slideRight()
+                    assert(slid, "Couldn't slide right")
                 }
                 return true
             } else if horizontalMoves > 0 {
                 // Shift left currentColumn - emptyColumn times
                 for _ in 1...horizontalMoves {
-                    let shifted = self.shiftLeft()
-                    assert(shifted, "Couldn't shift left")
+                    let slid = self.slideLeft()
+                    assert(slid, "Couldn't slide left")
                 }
                 return true
             }
@@ -316,64 +426,28 @@ class SliderScene: SKScene {
         return false
     }
     
-    // Shuffle the board
-    private func shuffle() {
-        shuffle(count: 10 * self.columns * self.rows)
-    }
-    
-    // Shuffles the board by making count moves
-    private func shuffle(count: Int) {
-        var shuffleCount: Int = 0
-        var lastDirection: Int = 42;  // Something out of bounds [-2,5]
-        
-        while shuffleCount < count {
-            let direction = Int.random(in: 0..<4) // NESW
-            
-            var shifted: Bool = false
-
-            // Disallow the reverse of the previous - no left then right or up then down.
-            // Values were chosen such that this means not a difference of 2
-            if abs(direction - lastDirection) != 2 {
-                switch direction {
-                case 0: shifted = shiftUp()
-                case 1: shifted = shiftRight()
-                case 2: shifted = shiftDown()
-                case 3: shifted = shiftLeft()
-                default: assert(false, "unexpected direction")
-                }
-            }
-
-            if shifted {
-                lastDirection = direction
-                shuffleCount += 1
-            }
-        }
-        
-        self.setLabelAlpha(alpha: 1)
-    }
-    
     // Move one tile left into empty slot if possible
-    private func shiftLeft() -> Bool {
-        return self.moveToEmpty(column: self.emptyColumn + 1, row: self.emptyRow)
+    private func slideLeft() -> Bool {
+        return self.slideToEmpty(column: self.emptyColumn + 1, row: self.emptyRow)
     }
     
     // Move one tile right into empty slot if possible
-    private func shiftRight() -> Bool {
-        return self.moveToEmpty(column: emptyColumn - 1, row: self.emptyRow)
+    private func slideRight() -> Bool {
+        return self.slideToEmpty(column: emptyColumn - 1, row: self.emptyRow)
     }
     
     // Move one tile up into empty slot if possible
-    private func shiftUp() -> Bool {
-        return self.moveToEmpty(column: self.emptyColumn, row: self.emptyRow + 1)
+    private func slideUp() -> Bool {
+        return self.slideToEmpty(column: self.emptyColumn, row: self.emptyRow + 1)
     }
     
     // Move one tile down into empty slot if possible
-    private func shiftDown() -> Bool {
-        return self.moveToEmpty(column: self.emptyColumn, row: self.emptyRow - 1)
+    private func slideDown() -> Bool {
+        return self.slideToEmpty(column: self.emptyColumn, row: self.emptyRow - 1)
     }
 
     // Move the specified tile into empty slot
-    private func moveToEmpty(column: Int, row: Int) -> Bool {
+    private func slideToEmpty(column: Int, row: Int) -> Bool {
         if column < 0 || self.columns <= column || row < 0 || self.rows <= row {
             // Can't move in this direction
             return false
@@ -381,16 +455,10 @@ class SliderScene: SKScene {
         
         let tile = self.tiles[column][row]
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
-
         // Move the specified tile into the empty area
-        tile.currentColumn = self.emptyColumn
-        tile.currentRow = self.emptyRow
-        self.tiles[self.emptyColumn][self.emptyRow] = tile
-
+        self.setTilePosition(tile: tile, column: self.emptyColumn, row: self.emptyRow)
         // And the empty tile gets swapped into the other location
-        emptyTile.currentColumn = column
-        emptyTile.currentRow = row
-        self.tiles[column][row] = emptyTile
+        self.setTilePosition(tile: emptyTile, column: column, row: row)
         self.emptyColumn = column
         self.emptyRow = row
         
@@ -398,26 +466,31 @@ class SliderScene: SKScene {
         let newRect = self.getTileRect(column: tile.currentColumn, row: tile.currentRow)
         let newX = newRect.midX
         let newY = newRect.midY
-        
-        // Animate the tile position
-        tile.run(SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.1))
+
+        if self.animateSlide {
+            // Animate the tile position
+            tile.run(SKAction.sequence([
+                SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.1),
+                SKAction.run { self.impactOccurred() }
+                ]))
+        } else {
+            tile.position = CGPoint(x: newX, y: newY)
+        }
         
         if isSolved() {
-            // Show the empty tile to complete the puzzle
-            emptyTile.run(SKAction.sequence([
-                SKAction.fadeAlpha(to: 1, duration: 0.25),
-                SKAction.wait(forDuration: 2),
-                SKAction.fadeAlpha(to: 0, duration: 0.25),
-                SKAction.run { self.shuffle() }
-                ]))
-
-            self.setLabelAlpha(alpha: 0)
+            self.solved()
         } else {
             // Not solved yet
             // TODO: add haptic feedback?
         }
         
         return true
+    }
+    
+    private func setTilePosition(tile: Tile, column: Int, row: Int) {
+        tile.currentColumn = column
+        tile.currentRow = row
+        self.tiles[column][row] = tile
     }
     
     // Returns true iff the puzzle has been solved
