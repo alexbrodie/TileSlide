@@ -50,6 +50,32 @@ extension UIImage {
     }
 }
 
+extension CGRect {
+    public func middleWithAspect(_ aspect: CGFloat) -> CGRect {
+        if self.width / self.height > aspect {
+            // I'm wider given the same height, shorter given same width
+            // Scale foo by (self.height / foo.height) to fit within:
+            // newWidth = foo.width * (self.height / foo.height)
+            //          = self.height * aspect
+            // newHeight = foo.height * (self.height / foo.height)
+            //           = self.height
+            let newWidth = self.height * aspect
+            let newX = self.minX + (self.width - newWidth) * 0.5
+            return CGRect(x: newX, y: self.minY, width: newWidth, height: self.height)
+        } else {
+            // Parent is skinnier given same height, taller given same width
+            // Scale img by (self.width / foo.width) to fit within
+            // newWidth = foo.width * (self.width / foo.width)
+            //          = self.width
+            // newHeight = foo.height * (self.width / foo.width)
+            //           = self.width / aspect
+            let newHeight = self.width / aspect
+            let newY = self.minY + (self.height - newHeight) * 0.5
+            return CGRect(x: self.minX, y: newY, width: self.width, height: newHeight)
+        }
+    }
+}
+
 class SliderScene: SKScene {
     
     private class Tile : SKSpriteNode {
@@ -89,6 +115,8 @@ class SliderScene: SKScene {
     private var emptyRow: Int = -1
     // A 2D array of tiles indexed by current position
     private var tiles: [[Tile]] = []
+    // The aspect ratio of the content backing the tiles, or 0 if unset
+    private var tilesContentAspect: CGFloat = 0
     
     // Used when doing a batch operation to disable animations and feedback
     // for any slide operations
@@ -267,6 +295,7 @@ class SliderScene: SKScene {
         self.emptyColumn = columns - 1
         self.emptyRow = rows - 1
         self.tiles.removeAll()
+        self.tilesContentAspect = 0
 
         // Make texture for the sprite nodes
         var tex: SKTexture?;
@@ -281,6 +310,7 @@ class SliderScene: SKScene {
             // TODO: crop to prevent squishing image
 
             tex = SKTexture.init(image: img)
+            self.tilesContentAspect = img.size.width / img.size.height
         }
         
         // Build nodes for each tile (initially hidden)
@@ -357,11 +387,14 @@ class SliderScene: SKScene {
     
     // Get the rectangle for the given grid coordinate
     private func getTileRect(column: Int, row: Int) -> CGRect {
-        let f = self.frame
-        let tileWidth = f.width / CGFloat(self.columns)
-        let tileHeight = f.height / CGFloat(self.rows)
-        let x = f.minX + CGFloat(column) * tileWidth
-        let y = f.minY + CGFloat(self.rows - row - 1) * tileHeight
+        var bounds: CGRect = self.frame
+        if self.tilesContentAspect > 0 {
+            bounds = bounds.middleWithAspect(self.tilesContentAspect)
+        }
+        let tileWidth = bounds.width / CGFloat(self.columns)
+        let tileHeight = bounds.height / CGFloat(self.rows)
+        let x = bounds.minX + CGFloat(column) * tileWidth
+        let y = bounds.minY + CGFloat(self.rows - row - 1) * tileHeight
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
