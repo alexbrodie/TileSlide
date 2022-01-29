@@ -52,7 +52,7 @@ extension UIImage {
 
 class SliderScene: SKScene {
     
-    class Tile : SKSpriteNode {
+    private class Tile : SKSpriteNode {
         // The original column position the tile occupies
         var originalColumn: Int = -1
         // The original row position the tile occupies
@@ -62,6 +62,15 @@ class SliderScene: SKScene {
         // The current row position the tile occupies
         var currentRow: Int = -1
     }
+    
+    private enum Stage {
+        case uninitialized
+        case transition
+        case playing
+        case solved
+    }
+    
+    private var stage: Stage = .uninitialized
     
     // True if impact feedback should be used
     private var enableHaptics: Bool = true
@@ -100,7 +109,7 @@ class SliderScene: SKScene {
         self.backgroundColor = UIColor.black
         //self.setEnableTiltToSlide(true);
         //self.makeDebugText()
-        self.setup(image: UIImage.init(named: "sample"), columns: 3, rows: 4)
+        self.setup()
     }
     
     override func update(_ currentTime: TimeInterval) {
@@ -108,7 +117,7 @@ class SliderScene: SKScene {
         let pitchOffset = -0.75
         let tiltThreshold = 0.25
 
-        if self.enableTiltToSlide {
+        if self.stage == .playing && self.enableTiltToSlide {
             if let data = self.motionManager!.deviceMotion {
                 // Wait this long between processing tilt slides
                 let now = Date.init()
@@ -152,19 +161,26 @@ class SliderScene: SKScene {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches {
-            // Walk ancestors until we get a tile
-            let location = t.location(in: self)
-            var node: SKNode? = self.atPoint(location)
-            while node != nil {
-                if let tile = node! as? Tile {
-                    // Move the tile the touch was in
-                    _ = trySlideTile(tile)
-                    break
+        switch self.stage {
+        case .playing:
+            for t in touches {
+                // Walk ancestors until we get a tile
+                let location = t.location(in: self)
+                var node: SKNode? = self.atPoint(location)
+                while node != nil {
+                    if let tile = node! as? Tile {
+                        // Move the tile the touch was in
+                        _ = trySlideTile(tile)
+                        break
+                    }
+                    
+                    node = node!.parent
                 }
-                
-                node = node!.parent
             }
+        case .solved:
+            setup()
+        default:
+            break
         }
     }
     
@@ -223,13 +239,35 @@ class SliderScene: SKScene {
         self.debugText = label
     }
     
+    private func setup() {
+        self.setup(image: UIImage.init(named: "sample"), columns: 3, rows: 4)
+    }
+    
+    private func cleanup() {
+        self.setup(image: nil, columns: 0, rows: 0)
+    }
+    
     private func setup(image: UIImage?, columns: Int, rows: Int) {
+        self.stage = .transition
+        
+        // Fade out and remove old stuff
+        for col in self.tiles {
+            for tile in col {
+                tile.run(SKAction.sequence([
+                    SKAction.fadeOut(withDuration: 0.2),
+                    SKAction.run { tile.removeFromParent() },
+                    ]))
+            }
+        }
+
+        // Reset tile data
         self.columns = columns
         self.rows = rows
         self.emptyColumn = columns - 1
         self.emptyRow = rows - 1
         self.tiles.removeAll()
-        
+
+        // Make texture for the sprite nodes
         var tex: SKTexture?;
         if var img = image {
             // If aspect ratio of image is different from area we're displaying in, rotate it
@@ -244,6 +282,7 @@ class SliderScene: SKScene {
             tex = SKTexture.init(image: img)
         }
         
+        // Build nodes for each tile (initially hidden)
         for c in 0..<columns {
             self.tiles.append([])
             for r in 0..<rows {
@@ -269,7 +308,6 @@ class SliderScene: SKScene {
                 tile.originalRow = r
                 tile.currentColumn = c
                 tile.currentRow = r
-                self.addChild(tile)
 
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
                 label.fontColor = self.numberLabelTextColor
@@ -280,51 +318,40 @@ class SliderScene: SKScene {
                 tile.addChild(label)
                 
                 tiles[c].append(tile)
+                self.addChild(tile)
             }
         }
         
-        self.fullShuffle()
-        
-        for c in 0..<columns {
-            for r in 0..<rows {
-                let tile = tiles[c][r];
+        self.shuffle()
+
+        // Reveal tiles
+        for col in self.tiles {
+            for tile in col {
                 if tile.currentColumn != self.emptyColumn || tile.currentRow != self.emptyRow {
                     let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1);
                     tile.run(SKAction.sequence([
                         SKAction.wait(forDuration: tilePercentile * 0.2),
-                        SKAction.fadeAlpha(to: 1, duration: 0.3)
-                    ]))
+                        SKAction.fadeAlpha(to: 1, duration: 0.3),
+                        ]))
                 }
             }
         }
+        
+        self.run(SKAction.wait(forDuration: 0.5),
+                 completion: { self.stage = .playing })
     }
     
     private func solved() {
+        self.stage = .transition
         self.setLabelAlpha(0)
 
         // Show the empty tile to complete the puzzle
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
         emptyTile.run(SKAction.sequence([
-            SKAction.fadeAlpha(to: 1, duration: 0.25),
-            SKAction.wait(forDuration: 2),
-            SKAction.fadeAlpha(to: 0, duration: 0.25),
-            SKAction.run {
-                self.fullShuffle()
-                self.setLabelAlpha(1)
-            },
-            ]))
-    }
-    
-    private func fullShuffle() {
-        let oldAnimateSlide = self.animateSlide
-        self.animateSlide = false
-        defer { self.animateSlide = oldAnimateSlide }
-
-        let oldIsPaused = self.isPaused
-        self.isPaused = true
-        defer { self.isPaused = oldIsPaused }
-
-        shuffle()
+                SKAction.fadeAlpha(to: 1, duration: 0.25),
+                SKAction.wait(forDuration: 0.75),
+            ]),
+            completion: { self.stage = .solved })
     }
     
     // Get the rectangle for the given grid coordinate
@@ -351,7 +378,15 @@ class SliderScene: SKScene {
     
     // Shuffle the board
     private func shuffle() {
-        shuffle(10 * self.columns * self.rows)
+        let oldAnimateSlide = self.animateSlide
+        self.animateSlide = false
+        defer { self.animateSlide = oldAnimateSlide }
+
+        let oldIsPaused = self.isPaused
+        self.isPaused = true
+        defer { self.isPaused = oldIsPaused }
+        
+        shuffle(3)
     }
     
     // Shuffles the board by making count moves
@@ -470,7 +505,7 @@ class SliderScene: SKScene {
             // Animate the tile position
             tile.run(SKAction.sequence([
                 SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.1),
-                SKAction.run { self.impactOccurred() }
+                SKAction.run { self.impactOccurred() },
                 ]))
         } else {
             tile.position = CGPoint(x: newX, y: newY)
