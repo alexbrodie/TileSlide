@@ -100,7 +100,7 @@ class SliderScene: SKScene {
         self.backgroundColor = UIColor.black
         //self.setEnableTiltToSlide(true);
         //self.makeDebugText()
-        self.setup(columns: 3, rows: 4)
+        self.setup(image: UIImage.init(named: "sample"), columns: 3, rows: 4)
     }
     
     override func update(_ currentTime: TimeInterval) {
@@ -223,7 +223,7 @@ class SliderScene: SKScene {
         self.debugText = label
     }
     
-    private func setup(columns: Int, rows: Int) {
+    private func setup(image: UIImage?, columns: Int, rows: Int) {
         self.columns = columns
         self.rows = rows
         self.emptyColumn = columns - 1
@@ -231,7 +231,7 @@ class SliderScene: SKScene {
         self.tiles.removeAll()
         
         var tex: SKTexture?;
-        if var img = UIImage.init(named: "sample") {
+        if var img = image {
             // If aspect ratio of image is different from area we're displaying in, rotate it
             let imgSize = img.size
             let frameSize = self.frame.size
