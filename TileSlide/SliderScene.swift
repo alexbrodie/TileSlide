@@ -240,9 +240,10 @@ class SliderScene: SKScene {
     }
     
     private func setup() {
-        self.setup(image: UIImage.init(named: "sample"), columns: 3, rows: 4)
+        let image = UIImage(named: String(format: "Doguillo-%d", Int.random(in: 1...19)))
+        self.setup(image: image, columns: 3, rows: 3)
     }
-    
+
     private func cleanup() {
         self.setup(image: nil, columns: 0, rows: 0)
     }
