@@ -103,8 +103,12 @@ class SliderScene: SKScene {
     // True if tilting device should be used as an input to slide tiles
     private var enableTiltToSlide: Bool = false;
     // Color for the labels that contain the number of each tile
-    private var numberLabelTextColor: UIColor = UIColor.init(white: 0.82, alpha: 0.5)
-
+    private var numberLabelTextColor: UIColor = UIColor.init(white: 0.7, alpha: 0.6)
+    // Font for the labels that contain the number of each tile
+    private let numberLabelFontName = "Avenir-Heavy"
+    // Text size for the labels that contain the number of each tile relative to the tile size
+    private let numberLabelFontSize = 0.9
+    
     // The total number of columns
     private var columns: Int = 0
     // The total number or rows
@@ -300,11 +304,11 @@ class SliderScene: SKScene {
         var tex: SKTexture?;
         if var img = image {
             // If aspect ratio of image is different from area we're displaying in, rotate it
-            let imgSize = img.size
-            let frameSize = self.frame.size
-            if (imgSize.width > imgSize.height) != (frameSize.width > frameSize.height) {
-                img = img.rotate(degrees: 90)
-            }
+            //let imgSize = img.size
+            //let frameSize = self.frame.size
+            //if (imgSize.width > imgSize.height) != (frameSize.width > frameSize.height) {
+            //    img = img.rotate(degrees: 90)
+            //}
             
             // TODO: crop to prevent squishing image
 
@@ -341,7 +345,8 @@ class SliderScene: SKScene {
 
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
                 label.fontColor = self.numberLabelTextColor
-                label.fontSize = rect.height * 0.4
+                label.fontName = self.numberLabelFontName
+                label.fontSize = rect.height * self.numberLabelFontSize
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
                 label.zPosition = 1
@@ -419,7 +424,7 @@ class SliderScene: SKScene {
         self.isPaused = true
         defer { self.isPaused = oldIsPaused }
         
-        shuffle(3)
+        shuffle(10 * self.columns * self.rows)
     }
     
     // Shuffles the board by making count moves
