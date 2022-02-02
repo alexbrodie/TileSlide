@@ -122,10 +122,6 @@ class SliderScene: SKScene {
     // The aspect ratio of the content backing the tiles, or 0 if unset
     private var tilesContentAspect: CGFloat = 0
     
-    // Used when doing a batch operation to disable animations and feedback
-    // for any slide operations
-    private var animateSlide: Bool = true
-    
     // Generator for feedback, e.g. haptics
     private var impactFeedback: UIImpactFeedbackGenerator? = nil
     
@@ -427,10 +423,6 @@ class SliderScene: SKScene {
     
     // Shuffles the board by making count moves
     private func shuffle(_ count: Int) {
-        let oldAnimateSlide = self.animateSlide
-        self.animateSlide = false
-        defer { self.animateSlide = oldAnimateSlide }
-
         let oldIsPaused = self.isPaused
         self.isPaused = true
         defer { self.isPaused = oldIsPaused }
@@ -545,7 +537,7 @@ class SliderScene: SKScene {
         let newX = newRect.midX
         let newY = newRect.midY
 
-        if self.animateSlide {
+        if !self.isPaused {
             // Animate the tile position
             tile.run(SKAction.sequence([
                 SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.1),
