@@ -272,7 +272,7 @@ class SliderScene: SKScene {
     }
     
     private func setup() {
-        self.setup(image: UIImage.init(named: "sample"), columns: 3, rows: 4)
+        self.setup(image: UIImage.init(named: "sample"), columns: 4, rows: 3)
     }
     
     private func cleanup() {
@@ -372,21 +372,27 @@ class SliderScene: SKScene {
             }
         }
         
-        self.run(SKAction.wait(forDuration: 0.5),
-                 completion: { self.stage = .playing })
+        self.run(SKAction.wait(forDuration: 0.5)) {
+            self.stage = .playing
+        }
     }
     
     private func solved() {
         self.stage = .transition
-        self.setLabelAlpha(0)
+
+        // Fade out the tile adornments - label
+        self.forEachLabel {
+            $0.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
+        }
 
         // Show the empty tile to complete the puzzle
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
         emptyTile.run(SKAction.sequence([
                 SKAction.fadeAlpha(to: 1, duration: 0.25),
                 SKAction.wait(forDuration: 0.75),
-            ]),
-            completion: { self.stage = .solved })
+            ])) {
+                self.stage = .solved
+            }
     }
     
     // Get the rectangle for the given grid coordinate
@@ -402,12 +408,12 @@ class SliderScene: SKScene {
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
-    private func setLabelAlpha(_ alpha: CGFloat) {
+    private func forEachLabel(_ closure: (SKLabelNode) -> Void) {
         for child in self.children {
             if let tile = child as? Tile {
                 for child2 in tile.children {
                     if let label = child2 as? SKLabelNode {
-                        label.run(SKAction.fadeAlpha(to: alpha, duration: 0.25))
+                        closure(label)
                     }
                 }
             }
@@ -416,6 +422,11 @@ class SliderScene: SKScene {
     
     // Shuffle the board
     private func shuffle() {
+        shuffle(10 * self.columns * self.rows)
+    }
+    
+    // Shuffles the board by making count moves
+    private func shuffle(_ count: Int) {
         let oldAnimateSlide = self.animateSlide
         self.animateSlide = false
         defer { self.animateSlide = oldAnimateSlide }
@@ -424,11 +435,6 @@ class SliderScene: SKScene {
         self.isPaused = true
         defer { self.isPaused = oldIsPaused }
         
-        shuffle(10 * self.columns * self.rows)
-    }
-    
-    // Shuffles the board by making count moves
-    private func shuffle(_ count: Int) {
         var shuffleCount: Int = 0
         var lastDirection: Int = 42;  // Something out of bounds [-2,5]
         
