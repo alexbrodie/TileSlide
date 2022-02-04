@@ -13,8 +13,6 @@
 		DB663D45226F9DFA0058AFFB /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DB663D43226F9DFA0058AFFB /* Main.storyboard */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
 		DB663D4A226F9DFC0058AFFB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */; };
-		DB663D55226F9DFC0058AFFB /* TileSlideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D54226F9DFC0058AFFB /* TileSlideTests.swift */; };
-		DB663D60226F9DFC0058AFFB /* TileSlideUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D5F226F9DFC0058AFFB /* TileSlideUITests.swift */; };
 		DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D6D226FA2750058AFFB /* SliderScene.swift */; };
 		DB663D72226FA2EB0058AFFB /* SliderScene.sks in Resources */ = {isa = PBXBuildFile; fileRef = DB663D71226FA2EB0058AFFB /* SliderScene.sks */; };
 /* End PBXBuildFile section */
@@ -46,11 +44,7 @@
 		DB663D49226F9DFC0058AFFB /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		DB663D4B226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DB663D50226F9DFC0058AFFB /* TileSlideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TileSlideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DB663D54226F9DFC0058AFFB /* TileSlideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileSlideTests.swift; sourceTree = "<group>"; };
-		DB663D56226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DB663D5B226F9DFC0058AFFB /* TileSlideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TileSlideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DB663D5F226F9DFC0058AFFB /* TileSlideUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileSlideUITests.swift; sourceTree = "<group>"; };
-		DB663D61226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DB663D6D226FA2750058AFFB /* SliderScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderScene.swift; sourceTree = "<group>"; };
 		DB663D71226FA2EB0058AFFB /* SliderScene.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = SliderScene.sks; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -84,8 +78,6 @@
 			isa = PBXGroup;
 			children = (
 				DB663D38226F9DFA0058AFFB /* TileSlide */,
-				DB663D53226F9DFC0058AFFB /* TileSlideTests */,
-				DB663D5E226F9DFC0058AFFB /* TileSlideUITests */,
 				DB663D37226F9DFA0058AFFB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -114,24 +106,6 @@
 				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
 			);
 			path = TileSlide;
-			sourceTree = "<group>";
-		};
-		DB663D53226F9DFC0058AFFB /* TileSlideTests */ = {
-			isa = PBXGroup;
-			children = (
-				DB663D54226F9DFC0058AFFB /* TileSlideTests.swift */,
-				DB663D56226F9DFC0058AFFB /* Info.plist */,
-			);
-			path = TileSlideTests;
-			sourceTree = "<group>";
-		};
-		DB663D5E226F9DFC0058AFFB /* TileSlideUITests */ = {
-			isa = PBXGroup;
-			children = (
-				DB663D5F226F9DFC0058AFFB /* TileSlideUITests.swift */,
-				DB663D61226F9DFC0058AFFB /* Info.plist */,
-			);
-			path = TileSlideUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -277,7 +251,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB663D55226F9DFC0058AFFB /* TileSlideTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,7 +258,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB663D60226F9DFC0058AFFB /* TileSlideUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
