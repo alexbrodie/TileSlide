@@ -95,9 +95,8 @@ class SliderScene: SKScene {
         case playing
         case solved
     }
-    
-    private var stage: Stage = .uninitialized
-    
+
+    // # Settings...
     // True if impact feedback should be used
     private var enableHaptics: Bool = true
     // True if tilting device should be used as an input to slide tiles
@@ -109,6 +108,9 @@ class SliderScene: SKScene {
     // Text size for the labels that contain the number of each tile relative to the tile size
     private let numberLabelFontSize = 0.9
     
+    // # State...
+    // What phase of gameplay we are in
+    private var stage: Stage = .uninitialized
     // The total number of columns
     private var columns: Int = 0
     // The total number or rows
@@ -121,15 +123,16 @@ class SliderScene: SKScene {
     private var tiles: [[Tile]] = []
     // The aspect ratio of the content backing the tiles, or 0 if unset
     private var tilesContentAspect: CGFloat = 0
-    
-    // Generator for feedback, e.g. haptics
-    private var impactFeedback: UIImpactFeedbackGenerator? = nil
-    
-    // Object to fetch accelerometer/gyro data
-    private var motionManager: CMMotionManager? = nil
     // Last time that tilting the device slid a tile
     private var lastTiltShift: Date = Date.init()
+
+    // # Connections...
+    // Generator for feedback, e.g. haptics
+    private var impactFeedback: UIImpactFeedbackGenerator? = nil
+    // Object to fetch accelerometer/gyro data
+    private var motionManager: CMMotionManager? = nil
     
+    // # Children...
     // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
 
@@ -138,7 +141,6 @@ class SliderScene: SKScene {
             hud.position = CGPoint(x: hud.position.x, y: self.frame.maxY)
             hud.size = CGSize(width: self.size.width, height: hud.size.height)
         }
-        self.backgroundColor = UIColor.black
         //self.setEnableTiltToSlide(true);
         //self.makeDebugText()
         self.setup()
@@ -157,9 +159,7 @@ class SliderScene: SKScene {
                     let yaw = data.attitude.yaw
                     let pitch = data.attitude.pitch + pitchOffset
                     let roll = data.attitude.roll
-                    if let debugText = self.debugText {
-                        debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
-                    }
+                    self.debugText?.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
                     
                     var slid = false
                    

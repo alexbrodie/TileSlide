@@ -18,11 +18,8 @@ class GameViewController: UIViewController {
         if let view = self.view as! SKView? {
             // Load the SKScene from 'SliderScene.sks'
             if let scene = SKScene(fileNamed: "SliderScene") {
-                // Set the scale mode to scale to fit the window
-                //scene.scaleMode = .aspectFill
+                scene.backgroundColor = UIColor.black
                 scene.scaleMode = .resizeFill
-                
-                // Present the scene
                 view.presentScene(scene)
             }
             
