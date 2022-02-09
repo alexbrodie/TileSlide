@@ -134,6 +134,10 @@ class SliderScene: SKScene {
     private var debugText: SKLabelNode? = nil
 
     override func didMove(to view: SKView) {
+        if let hud = self.childNode(withName: "hud") as? SKSpriteNode {
+            hud.position = CGPoint(x: hud.position.x, y: self.frame.maxY)
+            hud.size = CGSize(width: self.size.width, height: hud.size.height)
+        }
         self.backgroundColor = UIColor.black
         //self.setEnableTiltToSlide(true);
         //self.makeDebugText()
@@ -189,26 +193,32 @@ class SliderScene: SKScene {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        switch self.stage {
-        case .playing:
-            for t in touches {
+        for t in touches {
+            let location = t.location(in: self)
+            var node: SKNode? = self.atPoint(location)
+
+            if node?.name == "settingsButton" {
+                let settings = self.childNode(withName: "settings")
+                settings?.run(SKAction.fadeIn(withDuration: 0.5))
+                continue // handled
+            }
+
+            switch self.stage {
+            case .playing:
                 // Walk ancestors until we get a tile
-                let location = t.location(in: self)
-                var node: SKNode? = self.atPoint(location)
                 while node != nil {
                     if let tile = node! as? Tile {
                         // Move the tile the touch was in
                         _ = trySlideTile(tile)
                         break
                     }
-                    
                     node = node!.parent
                 }
+            case .solved:
+                setup()
+            default:
+                break
             }
-        case .solved:
-            setup()
-        default:
-            break
         }
     }
     
@@ -353,7 +363,7 @@ class SliderScene: SKScene {
             }
         }
         
-        self.shuffle()
+        self.shuffle(2)
 
         // Reveal tiles
         for col in self.tiles {
@@ -400,7 +410,7 @@ class SliderScene: SKScene {
         let tileWidth = bounds.width / CGFloat(self.columns)
         let tileHeight = bounds.height / CGFloat(self.rows)
         let x = bounds.minX + CGFloat(column) * tileWidth
-        let y = bounds.minY + CGFloat(self.rows - row - 1) * tileHeight
+        let y = bounds.maxY - CGFloat(row + 1) * tileHeight
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
