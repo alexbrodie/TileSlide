@@ -308,7 +308,7 @@ class SliderScene: SKScene {
 
         // Make texture for the sprite nodes
         var tex: SKTexture?;
-        if var img = image {
+        if let img = image {
             // If aspect ratio of image is different from area we're displaying in, rotate it
             //let imgSize = img.size
             //let frameSize = self.frame.size
