@@ -1,5 +1,5 @@
 //
-//  SettingsView.swift
+//  MainView.swift
 //  TileSlide
 //
 //  Created by Alex Brodie on 2/4/2022.
@@ -9,15 +9,15 @@
 import SwiftUI
 import SpriteKit
 
-struct SettingsView: View {
+struct MainView: View {
     @State private var borderColor: Color = .white
     @State private var borderThickness: CGFloat = 0.0
     @State private var settingsPresented: Bool = false
     
     var gameScene: SKScene {
         let s = SliderScene()
-        s.scaleMode = .resizeFill
         s.backgroundColor = .black
+        s.scaleMode = .resizeFill
         return s
     }
 
@@ -32,13 +32,13 @@ struct SettingsView: View {
                         settingsPresented.toggle()
                     } label: {
                         Image(systemName: "gearshape")
-                            .imageScale(.small)
-                            .frame(width: 32, height: 32)
-                            .background(Color(white: 0, opacity: 0.06))
-                            .cornerRadius(16)
+                            .imageScale(.large)
+                            .frame(width: 48, height: 48)
+                            .background(Color(white: 1, opacity: 0.1))
+                            .cornerRadius(24)
                             .foregroundColor(.white)
                     }
-                    .padding(16)
+                    .padding(8)
                 }
             }
         }
@@ -72,8 +72,8 @@ struct SettingsView: View {
     }
 }
 
-struct SettingsView_Previews: PreviewProvider {
+struct MainView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView()
+        MainView()
     }
 }

@@ -7,29 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DB5959D727AD164E002E33AE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB5959D627AD164E002E33AE /* SettingsView.swift */; };
-		DB663D3A226F9DFA0058AFFB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D39226F9DFA0058AFFB /* AppDelegate.swift */; };
 		DB663D3E226F9DFA0058AFFB /* Actions.sks in Resources */ = {isa = PBXBuildFile; fileRef = DB663D3D226F9DFA0058AFFB /* Actions.sks */; };
-		DB663D42226F9DFA0058AFFB /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D41226F9DFA0058AFFB /* GameViewController.swift */; };
-		DB663D45226F9DFA0058AFFB /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DB663D43226F9DFA0058AFFB /* Main.storyboard */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
-		DB663D4A226F9DFC0058AFFB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */; };
 		DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D6D226FA2750058AFFB /* SliderScene.swift */; };
-		DB663D72226FA2EB0058AFFB /* SliderScene.sks in Resources */ = {isa = PBXBuildFile; fileRef = DB663D71226FA2EB0058AFFB /* SliderScene.sks */; };
+		DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */; };
+		DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7E27B4D53A0000ACC2 /* MainView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		DB5959D627AD164E002E33AE /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		DB663D36226F9DFA0058AFFB /* TileSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TileSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		DB663D39226F9DFA0058AFFB /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DB663D3D226F9DFA0058AFFB /* Actions.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = Actions.sks; sourceTree = "<group>"; };
-		DB663D41226F9DFA0058AFFB /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
-		DB663D44226F9DFA0058AFFB /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		DB663D46226F9DFC0058AFFB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		DB663D49226F9DFC0058AFFB /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		DB663D4B226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DB663D6D226FA2750058AFFB /* SliderScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderScene.swift; sourceTree = "<group>"; };
-		DB663D71226FA2EB0058AFFB /* SliderScene.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = SliderScene.sks; sourceTree = "<group>"; };
+		DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileSlideApp.swift; sourceTree = "<group>"; };
+		DB70DA7E27B4D53A0000ACC2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,15 +55,11 @@
 			isa = PBXGroup;
 			children = (
 				DB663D3D226F9DFA0058AFFB /* Actions.sks */,
-				DB663D39226F9DFA0058AFFB /* AppDelegate.swift */,
+				DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */,
 				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
-				DB663D41226F9DFA0058AFFB /* GameViewController.swift */,
 				DB663D4B226F9DFC0058AFFB /* Info.plist */,
-				DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */,
-				DB663D43226F9DFA0058AFFB /* Main.storyboard */,
-				DB663D71226FA2EB0058AFFB /* SliderScene.sks */,
 				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
-				DB5959D627AD164E002E33AE /* SettingsView.swift */,
+				DB70DA7E27B4D53A0000ACC2 /* MainView.swift */,
 			);
 			path = TileSlide;
 			sourceTree = "<group>";
@@ -134,11 +122,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB663D45226F9DFA0058AFFB /* Main.storyboard in Resources */,
 				DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */,
-				DB663D4A226F9DFC0058AFFB /* LaunchScreen.storyboard in Resources */,
 				DB663D3E226F9DFA0058AFFB /* Actions.sks in Resources */,
-				DB663D72226FA2EB0058AFFB /* SliderScene.sks in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,33 +134,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */,
+				DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */,
 				DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */,
-				DB5959D727AD164E002E33AE /* SettingsView.swift in Sources */,
-				DB663D42226F9DFA0058AFFB /* GameViewController.swift in Sources */,
-				DB663D3A226F9DFA0058AFFB /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		DB663D43226F9DFA0058AFFB /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				DB663D44226F9DFA0058AFFB /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		DB663D48226F9DFC0058AFFB /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				DB663D49226F9DFC0058AFFB /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		DB663D62226F9DFC0058AFFB /* Debug */ = {
