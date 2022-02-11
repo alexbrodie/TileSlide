@@ -15,9 +15,9 @@ final class SliderSettings: ObservableObject {
     // True if tilting device should be used as an input to slide tiles
     @Published var enableTiltToSlide: Bool = false;
     // Color for the labels that contain the number of each tile
-    @Published var tileNumberColor: Color = .white.opacity(0.5)
+    @Published var tileNumberColor: Color = .init(.sRGB, red: 0.75, green: 0.75, blue: 0.75, opacity: 0.5)
     // Font for the labels that contain the number of each tile
     let tileNumberFontFace: String = "Avenir-Heavy"
     // Text size for the labels that contain the number of each tile relative to the tile size
-    @Published var tileNumberFontSize: Float = 0.4
+    @Published var tileNumberFontSize: Float = 0.9
 }

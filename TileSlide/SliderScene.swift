@@ -6,6 +6,7 @@
 //  Copyright © 2019 Alex Brodie. All rights reserved.
 //
 
+import Combine
 import CoreMotion
 import GameplayKit
 import SpriteKit
@@ -76,7 +77,7 @@ extension CGRect {
     }
 }
 
-class SliderScene: SKScene, ObservableObject {
+class SliderScene: SKScene {
     
     private class Tile : SKSpriteNode {
         // The original column position the tile occupies
@@ -96,7 +97,7 @@ class SliderScene: SKScene, ObservableObject {
         case solved
     }
     
-    @Published public var settings = SliderSettings()
+    public var settings = SliderSettings()
 
     // # State...
     // What phase of gameplay we are in
@@ -117,6 +118,7 @@ class SliderScene: SKScene, ObservableObject {
     private var lastTiltShift: Date = Date.init()
 
     // # Connections...
+    private var cancellableBag = Set<AnyCancellable>()
     // Generator for feedback, e.g. haptics
     private var impactFeedback: UIImpactFeedbackGenerator? = nil
     // Object to fetch accelerometer/gyro data
@@ -127,9 +129,19 @@ class SliderScene: SKScene, ObservableObject {
     private var debugText: SKLabelNode? = nil
     
     override init() {
-        super.init(size: CGSize(width: 0, height: 0));
+        super.init(size: CGSize(width: 0, height: 0))
         self.backgroundColor = .black
         self.scaleMode = .resizeFill
+        self.settings.$tileNumberColor.sink { value in
+            self.forEachTileNumberLabel { (label, tile) in
+                label.fontColor = UIColor(value)
+            }
+        }.store(in: &cancellableBag)
+        self.settings.$tileNumberFontSize.sink { value in
+            self.forEachTileNumberLabel { (label, tile) in
+                label.fontSize = tile.size.height * CGFloat(value)
+            }
+        }.store(in: &cancellableBag)
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -137,11 +149,7 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     override func didMove(to view: SKView) {
-        if let hud = self.childNode(withName: "hud") as? SKSpriteNode {
-            hud.position = CGPoint(x: hud.position.x, y: self.frame.maxY)
-            hud.size = CGSize(width: self.size.width, height: hud.size.height)
-        }
-        //self.setEnableTiltToSlide(true);
+        //self.setEnableTiltToSlide(true)
         //self.makeDebugText()
         self.setup()
     }
@@ -197,12 +205,6 @@ class SliderScene: SKScene, ObservableObject {
             let location = t.location(in: self)
             var node: SKNode? = self.atPoint(location)
 
-            if node?.name == "settingsButton" {
-                let settings = self.childNode(withName: "settings")
-                settings?.run(SKAction.fadeIn(withDuration: 0.5))
-                continue // handled
-            }
-
             switch self.stage {
             case .playing:
                 // Walk ancestors until we get a tile
@@ -223,7 +225,7 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     private func setEnableTiltToSlide(_ enable: Bool) {
-        self.settings.enableTiltToSlide = enable;
+        self.settings.enableTiltToSlide = enable
         if enable {
             self.startDeviceMotionUpdates()
         } else {
@@ -260,7 +262,7 @@ class SliderScene: SKScene, ObservableObject {
     private func makeDebugText() {
         let size = CGSize.init(width: self.frame.width, height: self.frame.height * 0.03)
         
-        let label = SKLabelNode.init(text: "Debug\nText");
+        let label = SKLabelNode.init(text: "Debug\nText")
         label.fontSize = size.height * 0.75
         label.horizontalAlignmentMode = .left
         label.verticalAlignmentMode = .center
@@ -307,7 +309,7 @@ class SliderScene: SKScene, ObservableObject {
         self.tilesContentAspect = 0
 
         // Make texture for the sprite nodes
-        var tex: SKTexture?;
+        var tex: SKTexture?
         if let img = image {
             // If aspect ratio of image is different from area we're displaying in, rotate it
             //let imgSize = img.size
@@ -326,7 +328,7 @@ class SliderScene: SKScene, ObservableObject {
         for c in 0..<columns {
             self.tiles.append([])
             for r in 0..<rows {
-                let tileNumber = c + r * columns;
+                let tileNumber = c + r * columns
                 
                 let rect = getTileRect(column: c, row: r)
                 var tile: Tile
@@ -363,13 +365,13 @@ class SliderScene: SKScene, ObservableObject {
             }
         }
         
-        self.shuffle(2)
+        self.shuffle()
 
         // Reveal tiles
         for col in self.tiles {
             for tile in col {
                 if tile.currentColumn != self.emptyColumn || tile.currentRow != self.emptyRow {
-                    let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1);
+                    let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1)
                     tile.run(SKAction.sequence([
                         SKAction.wait(forDuration: tilePercentile * 0.2),
                         SKAction.fadeAlpha(to: 1, duration: 0.3),
@@ -387,8 +389,8 @@ class SliderScene: SKScene, ObservableObject {
         self.stage = .transition
 
         // Fade out the tile adornments - label
-        self.forEachTileNumberLabel {
-            $0.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
+        self.forEachTileNumberLabel { (label, tile) in
+            label.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
         }
 
         // Show the empty tile to complete the puzzle
@@ -414,12 +416,12 @@ class SliderScene: SKScene, ObservableObject {
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
-    private func forEachTileNumberLabel(_ closure: (SKLabelNode) -> Void) {
+    private func forEachTileNumberLabel(_ closure: (SKLabelNode, SKSpriteNode) -> Void) {
         for child in self.children {
             if let tile = child as? Tile {
                 for child2 in tile.children {
                     if let label = child2 as? SKLabelNode {
-                        closure(label)
+                        closure(label, tile)
                     }
                 }
             }
@@ -438,7 +440,7 @@ class SliderScene: SKScene, ObservableObject {
         defer { self.isPaused = oldIsPaused }
         
         var shuffleCount: Int = 0
-        var lastDirection: Int = 42;  // Something out of bounds [-2,5]
+        var lastDirection: Int = 42  // Something out of bounds [-2,5]
         
         while shuffleCount < count {
             let direction = Int.random(in: 0..<4) // NESW

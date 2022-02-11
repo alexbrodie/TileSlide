@@ -9,13 +9,21 @@
 import SwiftUI
 import SpriteKit
 
+class GameSceneStore : ObservableObject {
+    var scene = SliderScene()
+    
+    init() {
+        scene.backgroundColor = .black
+    }
+}
+
 struct MainView: View {
     @State private var settingsPresented: Bool = false
-    @StateObject private var gameScene = SliderScene()
-
+    @StateObject private var gameSceneStore = GameSceneStore()
+    
     var body: some View {
         ZStack {
-            SpriteView(scene: gameScene)
+            SpriteView(scene: gameSceneStore.scene)
             VStack {
                 Spacer()
                 HStack {
@@ -34,36 +42,37 @@ struct MainView: View {
                 }
             }
         }
+        .ignoresSafeArea()
         .background(Color.black)
-        .sheet(isPresented: $settingsPresented) {
+        .fullScreenCover(isPresented: $settingsPresented) {
         } content: {
-                Form {
-                    HStack {
-                        Spacer()
-                        Button {
-                            settingsPresented = false
-                        } label: {
-                            Image(systemName: "xmark")
-                                .imageScale(.small)
-                                .frame(width: 32, height: 32)
-                                .background(Color(white: 1, opacity: 0.06))
-                                .cornerRadius(16)
-                                .foregroundColor(.black)
-                        }
-                    }
-                    Toggle(isOn: $gameScene.settings.enableHaptics) {
-                        Text("Enable Haptics")
-                    }
-                    ColorPicker("Number color", selection: $gameScene.settings.tileNumberColor)
-                    //Slider(value: $tileNumberSize, in: 0...1) {
-                    Slider(value: $gameScene.settings.tileNumberFontSize, in: 0...1) {
-                        Text("Number size")
-                    } minimumValueLabel: {
-                        Text("Small")
-                    } maximumValueLabel: {
-                        Text("Large")
+            Form {
+                HStack {
+                    Text("Settings")
+                    Spacer()
+                    Button {
+                        settingsPresented = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .imageScale(.small)
+                            .frame(width: 32, height: 32)
+                            .background(Color(white: 1, opacity: 0.06))
+                            .cornerRadius(16)
+                            .foregroundColor(.black)
                     }
                 }
+                Toggle(isOn: $gameSceneStore.scene.settings.enableHaptics) {
+                    Text("Enable Haptics")
+                }
+                ColorPicker("Number color", selection: $gameSceneStore.scene.settings.tileNumberColor)
+                Slider(value: $gameSceneStore.scene.settings.tileNumberFontSize, in: 0...1) {
+                    Text("Number size")
+                } minimumValueLabel: {
+                    Text("Small")
+                } maximumValueLabel: {
+                    Text("Large")
+                }
+            }
         }
     }
 }
