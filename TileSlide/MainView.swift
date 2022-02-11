@@ -10,16 +10,8 @@ import SwiftUI
 import SpriteKit
 
 struct MainView: View {
-    @State private var borderColor: Color = .white
-    @State private var borderThickness: CGFloat = 0.0
     @State private var settingsPresented: Bool = false
-    
-    var gameScene: SKScene {
-        let s = SliderScene()
-        s.backgroundColor = .black
-        s.scaleMode = .resizeFill
-        return s
-    }
+    @StateObject private var gameScene = SliderScene()
 
     var body: some View {
         ZStack {
@@ -59,13 +51,17 @@ struct MainView: View {
                                 .foregroundColor(.black)
                         }
                     }
-                    ColorPicker("Border color", selection: $borderColor)
-                    Slider(value: $borderThickness, in: 0...1) {
-                        Text("Thickness")
+                    Toggle(isOn: $gameScene.settings.enableHaptics) {
+                        Text("Enable Haptics")
+                    }
+                    ColorPicker("Number color", selection: $gameScene.settings.tileNumberColor)
+                    //Slider(value: $tileNumberSize, in: 0...1) {
+                    Slider(value: $gameScene.settings.tileNumberFontSize, in: 0...1) {
+                        Text("Number size")
                     } minimumValueLabel: {
-                        Text("Thin")
+                        Text("Small")
                     } maximumValueLabel: {
-                        Text("Thick")
+                        Text("Large")
                     }
                 }
         }

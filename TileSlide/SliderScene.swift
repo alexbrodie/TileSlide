@@ -76,7 +76,7 @@ extension CGRect {
     }
 }
 
-class SliderScene: SKScene {
+class SliderScene: SKScene, ObservableObject {
     
     private class Tile : SKSpriteNode {
         // The original column position the tile occupies
@@ -95,19 +95,9 @@ class SliderScene: SKScene {
         case playing
         case solved
     }
-
-    // # Settings...
-    // True if impact feedback should be used
-    private var enableHaptics: Bool = true
-    // True if tilting device should be used as an input to slide tiles
-    private var enableTiltToSlide: Bool = false;
-    // Color for the labels that contain the number of each tile
-    private var numberLabelTextColor: UIColor = UIColor.init(white: 0.7, alpha: 0.6)
-    // Font for the labels that contain the number of each tile
-    private let numberLabelFontName = "Avenir-Heavy"
-    // Text size for the labels that contain the number of each tile relative to the tile size
-    private let numberLabelFontSize = 0.9
     
+    @Published public var settings = SliderSettings()
+
     // # State...
     // What phase of gameplay we are in
     private var stage: Stage = .uninitialized
@@ -135,7 +125,17 @@ class SliderScene: SKScene {
     // # Children...
     // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
-
+    
+    override init() {
+        super.init(size: CGSize(width: 0, height: 0));
+        self.backgroundColor = .black
+        self.scaleMode = .resizeFill
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func didMove(to view: SKView) {
         if let hud = self.childNode(withName: "hud") as? SKSpriteNode {
             hud.position = CGPoint(x: hud.position.x, y: self.frame.maxY)
@@ -151,7 +151,7 @@ class SliderScene: SKScene {
         let pitchOffset = -0.75
         let tiltThreshold = 0.25
 
-        if self.stage == .playing && self.enableTiltToSlide {
+        if self.stage == .playing && self.settings.enableTiltToSlide {
             if let data = self.motionManager!.deviceMotion {
                 // Wait this long between processing tilt slides
                 let now = Date.init()
@@ -223,7 +223,7 @@ class SliderScene: SKScene {
     }
     
     private func setEnableTiltToSlide(_ enable: Bool) {
-        self.enableTiltToSlide = enable;
+        self.settings.enableTiltToSlide = enable;
         if enable {
             self.startDeviceMotionUpdates()
         } else {
@@ -245,7 +245,7 @@ class SliderScene: SKScene {
     }
     
     private func impactOccurred() {
-        if self.enableHaptics {
+        if self.settings.enableHaptics {
             if self.impactFeedback == nil {
                 self.impactFeedback = UIImpactFeedbackGenerator.init(style: .medium)
             }
@@ -350,9 +350,9 @@ class SliderScene: SKScene {
                 tile.currentRow = r
 
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
-                label.fontColor = self.numberLabelTextColor
-                label.fontName = self.numberLabelFontName
-                label.fontSize = rect.height * self.numberLabelFontSize
+                label.fontColor = UIColor(self.settings.tileNumberColor)
+                label.fontName = self.settings.tileNumberFontFace
+                label.fontSize = rect.height * CGFloat(self.settings.tileNumberFontSize)
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
                 label.zPosition = 1
@@ -387,7 +387,7 @@ class SliderScene: SKScene {
         self.stage = .transition
 
         // Fade out the tile adornments - label
-        self.forEachLabel {
+        self.forEachTileNumberLabel {
             $0.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
         }
 
@@ -414,7 +414,7 @@ class SliderScene: SKScene {
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
-    private func forEachLabel(_ closure: (SKLabelNode) -> Void) {
+    private func forEachTileNumberLabel(_ closure: (SKLabelNode) -> Void) {
         for child in self.children {
             if let tile = child as? Tile {
                 for child2 in tile.children {
