@@ -23,54 +23,78 @@ struct MainView: View {
     
     var body: some View {
         ZStack {
+            // Main
             SpriteView(scene: gameSceneStore.scene)
+                .ignoresSafeArea()
+                .blur(radius: settingsPresented ? 2 : 0, opaque: true)
+            // HUD
             VStack {
-                Spacer()
                 HStack {
                     Spacer()
                     Button{
-                        settingsPresented.toggle()
+                        withAnimation {
+                            settingsPresented.toggle()
+                        }
                     } label: {
                         Image(systemName: "gearshape")
                             .imageScale(.large)
-                            .frame(width: 48, height: 48)
-                            .background(Color(white: 1, opacity: 0.1))
-                            .cornerRadius(24)
-                            .foregroundColor(.white)
+                            .padding(4)
+                            .background(Circle()
+                                .foregroundColor(.white.opacity(0.1)))
+                            .foregroundColor(.white.opacity(0.6))
                     }
-                    .padding(8)
+                        .buttonStyle(.plain)
+                        .padding(16)
                 }
+                    .frame(maxWidth: .infinity)
+                Spacer()
+                    .frame(maxHeight: .infinity)
             }
-        }
-        .ignoresSafeArea()
-        .background(Color.black)
-        .customDialog(isPresented: $settingsPresented) {
-            VStack {
-                HStack {
-                    Text("Settings")
-                    Spacer()
-                    Button {
-                        settingsPresented = false
-                    } label: {
-                        Image(systemName: "xmark")
-                            .imageScale(.small)
-                            .frame(width: 32, height: 32)
-                            .background(Color(white: 1, opacity: 0.06))
-                            .cornerRadius(16)
-                            .foregroundColor(.black)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
+            // Settings
+            if settingsPresented {
+                Rectangle()
+                    .foregroundColor(.black.opacity(0.5))
+                    .ignoresSafeArea()
+                    .onTapGesture { withAnimation { settingsPresented = false } }
+                ZStack {
+                    // Settings content
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button {
+                                withAnimation {
+                                    settingsPresented = false
+                                }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .imageScale(.small)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color(white: 1, opacity: 0.06))
+                                    .cornerRadius(16)
+                                    .foregroundColor(.black)
+                            }
+                        }
+                        Toggle(isOn: $gameSceneStore.scene.settings.enableHaptics) {
+                            Text("Enable Haptics")
+                        }
+                        ColorPicker("Number color", selection: $gameSceneStore.scene.settings.tileNumberColor)
+                        Slider(value: $gameSceneStore.scene.settings.tileNumberFontSize, in: 0...1) {
+                            Text("Number size")
+                        } minimumValueLabel: {
+                            Text("Small")
+                        } maximumValueLabel: {
+                            Text("Large")
+                        }
                     }
+                        .background(RoundedRectangle(cornerRadius: 8)
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 8)
+                            .padding(-8))
+                        .foregroundColor(.black)
                 }
-                Toggle(isOn: $gameSceneStore.scene.settings.enableHaptics) {
-                    Text("Enable Haptics")
-                }
-                ColorPicker("Number color", selection: $gameSceneStore.scene.settings.tileNumberColor)
-                Slider(value: $gameSceneStore.scene.settings.tileNumberFontSize, in: 0...1) {
-                    Text("Number size")
-                } minimumValueLabel: {
-                    Text("Small")
-                } maximumValueLabel: {
-                    Text("Large")
-                }
+                    .padding(32)
             }
         }
     }
