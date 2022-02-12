@@ -44,9 +44,8 @@ struct MainView: View {
         }
         .ignoresSafeArea()
         .background(Color.black)
-        .fullScreenCover(isPresented: $settingsPresented) {
-        } content: {
-            Form {
+        .customDialog(isPresented: $settingsPresented) {
+            VStack {
                 HStack {
                     Text("Settings")
                     Spacer()
