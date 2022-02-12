@@ -6,6 +6,7 @@
 //  Copyright © 2019 Alex Brodie. All rights reserved.
 //
 
+import Combine
 import CoreMotion
 import GameplayKit
 import SpriteKit
@@ -96,19 +97,11 @@ class SliderScene: SKScene {
         case solved
     }
     
+    public var settings = SliderSettings()
+
+    // # State...
+    // What phase of gameplay we are in
     private var stage: Stage = .uninitialized
-    
-    // True if impact feedback should be used
-    private var enableHaptics: Bool = true
-    // True if tilting device should be used as an input to slide tiles
-    private var enableTiltToSlide: Bool = false;
-    // Color for the labels that contain the number of each tile
-    private var numberLabelTextColor: UIColor = UIColor.init(white: 0.7, alpha: 0.6)
-    // Font for the labels that contain the number of each tile
-    private let numberLabelFontName = "Avenir-Heavy"
-    // Text size for the labels that contain the number of each tile relative to the tile size
-    private let numberLabelFontSize = 0.9
-    
     // The total number of columns
     private var columns: Int = 0
     // The total number or rows
@@ -121,21 +114,42 @@ class SliderScene: SKScene {
     private var tiles: [[Tile]] = []
     // The aspect ratio of the content backing the tiles, or 0 if unset
     private var tilesContentAspect: CGFloat = 0
-    
-    // Generator for feedback, e.g. haptics
-    private var impactFeedback: UIImpactFeedbackGenerator? = nil
-    
-    // Object to fetch accelerometer/gyro data
-    private var motionManager: CMMotionManager? = nil
     // Last time that tilting the device slid a tile
     private var lastTiltShift: Date = Date.init()
+
+    // # Connections...
+    private var cancellableBag = Set<AnyCancellable>()
+    // Generator for feedback, e.g. haptics
+    private var impactFeedback: UIImpactFeedbackGenerator? = nil
+    // Object to fetch accelerometer/gyro data
+    private var motionManager: CMMotionManager? = nil
     
+    // # Children...
     // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
-
+    
+    override init() {
+        super.init(size: CGSize(width: 0, height: 0))
+        self.backgroundColor = .black
+        self.scaleMode = .resizeFill
+        self.settings.$tileNumberColor.sink { value in
+            self.forEachTileNumberLabel { (label, tile) in
+                label.fontColor = UIColor(value)
+            }
+        }.store(in: &cancellableBag)
+        self.settings.$tileNumberFontSize.sink { value in
+            self.forEachTileNumberLabel { (label, tile) in
+                label.fontSize = tile.size.height * CGFloat(value)
+            }
+        }.store(in: &cancellableBag)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func didMove(to view: SKView) {
-        self.backgroundColor = UIColor.black
-        //self.setEnableTiltToSlide(true);
+        //self.setEnableTiltToSlide(true)
         //self.makeDebugText()
         self.setup()
     }
@@ -145,7 +159,7 @@ class SliderScene: SKScene {
         let pitchOffset = -0.75
         let tiltThreshold = 0.25
 
-        if self.stage == .playing && self.enableTiltToSlide {
+        if self.stage == .playing && self.settings.enableTiltToSlide {
             if let data = self.motionManager!.deviceMotion {
                 // Wait this long between processing tilt slides
                 let now = Date.init()
@@ -153,9 +167,7 @@ class SliderScene: SKScene {
                     let yaw = data.attitude.yaw
                     let pitch = data.attitude.pitch + pitchOffset
                     let roll = data.attitude.roll
-                    if let debugText = self.debugText {
-                        debugText.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
-                    }
+                    self.debugText?.text = String(format: "Y = %.02f P = %.02f R = %.02f", yaw, pitch, roll)
                     
                     var slid = false
                    
@@ -189,31 +201,31 @@ class SliderScene: SKScene {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        switch self.stage {
-        case .playing:
-            for t in touches {
+        for t in touches {
+            let location = t.location(in: self)
+            var node: SKNode? = self.atPoint(location)
+
+            switch self.stage {
+            case .playing:
                 // Walk ancestors until we get a tile
-                let location = t.location(in: self)
-                var node: SKNode? = self.atPoint(location)
                 while node != nil {
                     if let tile = node! as? Tile {
                         // Move the tile the touch was in
                         _ = trySlideTile(tile)
                         break
                     }
-                    
                     node = node!.parent
                 }
+            case .solved:
+                setup()
+            default:
+                break
             }
-        case .solved:
-            setup()
-        default:
-            break
         }
     }
     
     private func setEnableTiltToSlide(_ enable: Bool) {
-        self.enableTiltToSlide = enable;
+        self.settings.enableTiltToSlide = enable
         if enable {
             self.startDeviceMotionUpdates()
         } else {
@@ -235,7 +247,7 @@ class SliderScene: SKScene {
     }
     
     private func impactOccurred() {
-        if self.enableHaptics {
+        if self.settings.enableHaptics {
             if self.impactFeedback == nil {
                 self.impactFeedback = UIImpactFeedbackGenerator.init(style: .medium)
             }
@@ -250,7 +262,7 @@ class SliderScene: SKScene {
     private func makeDebugText() {
         let size = CGSize.init(width: self.frame.width, height: self.frame.height * 0.03)
         
-        let label = SKLabelNode.init(text: "Debug\nText");
+        let label = SKLabelNode.init(text: "Debug\nText")
         label.fontSize = size.height * 0.75
         label.horizontalAlignmentMode = .left
         label.verticalAlignmentMode = .center
@@ -297,8 +309,8 @@ class SliderScene: SKScene {
         self.tilesContentAspect = 0
 
         // Make texture for the sprite nodes
-        var tex: SKTexture?;
-        if var img = image {
+        var tex: SKTexture?
+        if let img = image {
             // If aspect ratio of image is different from area we're displaying in, rotate it
             //let imgSize = img.size
             //let frameSize = self.frame.size
@@ -316,7 +328,7 @@ class SliderScene: SKScene {
         for c in 0..<columns {
             self.tiles.append([])
             for r in 0..<rows {
-                let tileNumber = c + r * columns;
+                let tileNumber = c + r * columns
                 
                 let rect = getTileRect(column: c, row: r)
                 var tile: Tile
@@ -340,9 +352,9 @@ class SliderScene: SKScene {
                 tile.currentRow = r
 
                 let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
-                label.fontColor = self.numberLabelTextColor
-                label.fontName = self.numberLabelFontName
-                label.fontSize = rect.height * self.numberLabelFontSize
+                label.fontColor = UIColor(self.settings.tileNumberColor)
+                label.fontName = self.settings.tileNumberFontFace
+                label.fontSize = rect.height * CGFloat(self.settings.tileNumberFontSize)
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
                 label.zPosition = 1
@@ -359,7 +371,7 @@ class SliderScene: SKScene {
         for col in self.tiles {
             for tile in col {
                 if tile.currentColumn != self.emptyColumn || tile.currentRow != self.emptyRow {
-                    let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1);
+                    let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1)
                     tile.run(SKAction.sequence([
                         SKAction.wait(forDuration: tilePercentile * 0.2),
                         SKAction.fadeAlpha(to: 1, duration: 0.3),
@@ -377,8 +389,8 @@ class SliderScene: SKScene {
         self.stage = .transition
 
         // Fade out the tile adornments - label
-        self.forEachLabel {
-            $0.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
+        self.forEachTileNumberLabel { (label, tile) in
+            label.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
         }
 
         // Show the empty tile to complete the puzzle
@@ -400,16 +412,16 @@ class SliderScene: SKScene {
         let tileWidth = bounds.width / CGFloat(self.columns)
         let tileHeight = bounds.height / CGFloat(self.rows)
         let x = bounds.minX + CGFloat(column) * tileWidth
-        let y = bounds.minY + CGFloat(self.rows - row - 1) * tileHeight
+        let y = bounds.maxY - CGFloat(row + 1) * tileHeight
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
     }
     
-    private func forEachLabel(_ closure: (SKLabelNode) -> Void) {
+    private func forEachTileNumberLabel(_ closure: (SKLabelNode, SKSpriteNode) -> Void) {
         for child in self.children {
             if let tile = child as? Tile {
                 for child2 in tile.children {
                     if let label = child2 as? SKLabelNode {
-                        closure(label)
+                        closure(label, tile)
                     }
                 }
             }
@@ -428,7 +440,7 @@ class SliderScene: SKScene {
         defer { self.isPaused = oldIsPaused }
         
         var shuffleCount: Int = 0
-        var lastDirection: Int = 42;  // Something out of bounds [-2,5]
+        var lastDirection: Int = 42  // Something out of bounds [-2,5]
         
         while shuffleCount < count {
             let direction = Int.random(in: 0..<4) // NESW
