@@ -368,7 +368,8 @@ class SliderScene: SKScene {
                 label.verticalAlignmentMode = .center
                 label.zPosition = 1
                 
-                let cropRect = rect.inflate(CGFloat(-self.settings.tileMarginSize))
+                let margin = min(rect.width, rect.height) * -0.5 * self.settings.tileMarginSize
+                let cropRect = rect.inflate(margin)
                 let crop = SKCropNode()
                 crop.name = nodeNameCrop
                 //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
@@ -395,7 +396,7 @@ class SliderScene: SKScene {
             }
         }
         
-        self.shuffle(1)
+        self.shuffle()
 
         // Reveal tiles
         for col in self.tiles {
