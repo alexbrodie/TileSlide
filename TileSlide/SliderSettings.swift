@@ -19,6 +19,9 @@ final class SliderSettings: ObservableObject {
     // Font for the labels that contain the number of each tile
     let tileNumberFontFace: String = "Avenir-Heavy"
     // Text size for the labels that contain the number of each tile relative to the tile size
-    @Published var tileNumberFontSize: Float = 0.9
-    let tileMargin: Float = 3;
+    @Published var tileNumberFontSize: Double = 0.9
+    // The margin size around tiles
+    @Published var tileMarginSize: Double = 3.0;
+    // The playback multipler with 1 being normal, and 2 taking twice as long
+    @Published var speedFactor: Double = 1.5;
 }

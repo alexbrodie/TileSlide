@@ -119,9 +119,13 @@ class SliderScene: SKScene {
     let nodeNameTile = "tile"
     let nodeNameCrop = "crop"
 
-    // # State...
+    // # UI State...
     // What phase of gameplay we are in
     private var stage: Stage = .uninitialized
+    // Last time that tilting the device slid a tile
+    private var lastTiltShift: Date = Date.init()
+
+    // # Board state...
     // The total number of columns
     private var columns: Int = 0
     // The total number or rows
@@ -134,9 +138,7 @@ class SliderScene: SKScene {
     private var tiles: [[Tile]] = []
     // The aspect ratio of the content backing the tiles, or 0 if unset
     private var tilesContentAspect: CGFloat = 0
-    // Last time that tilting the device slid a tile
-    private var lastTiltShift: Date = Date.init()
-
+    
     // # Connections...
     private var cancellableBag = Set<AnyCancellable>()
     // Generator for feedback, e.g. haptics
@@ -311,14 +313,16 @@ class SliderScene: SKScene {
     private func setup(image: UIImage?, columns: Int, rows: Int) {
         self.stage = .transition
         
+        let speedFactor = self.settings.speedFactor
+        
         // Fade out and remove old stuff
         self.enumerateChildNodes(withName: nodeNameTile) { (tile, stop) in
-            tile.run(.fadeOut(withDuration: 0.25)) {
+            tile.run(.fadeOut(withDuration: speedFactor * 0.25)) {
                 tile.removeFromParent()
             }
         }
 
-        // Reset tile data
+        // Reset board state
         self.columns = columns
         self.rows = rows
         self.emptyColumn = columns - 1
@@ -329,15 +333,6 @@ class SliderScene: SKScene {
         // Make texture for the sprite nodes
         var tex: SKTexture?
         if let img = image {
-            // If aspect ratio of image is different from area we're displaying in, rotate it
-            //let imgSize = img.size
-            //let frameSize = self.frame.size
-            //if (imgSize.width > imgSize.height) != (frameSize.width > frameSize.height) {
-            //    img = img.rotate(degrees: 90)
-            //}
-            
-            // TODO: crop to prevent squishing image
-
             tex = SKTexture.init(image: img)
             self.tilesContentAspect = img.size.width / img.size.height
         }
@@ -373,7 +368,7 @@ class SliderScene: SKScene {
                 label.verticalAlignmentMode = .center
                 label.zPosition = 1
                 
-                let cropRect = rect.inflate(CGFloat(-self.settings.tileMargin))
+                let cropRect = rect.inflate(CGFloat(-self.settings.tileMarginSize))
                 let crop = SKCropNode()
                 crop.name = nodeNameCrop
                 //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
@@ -400,7 +395,7 @@ class SliderScene: SKScene {
             }
         }
         
-        self.shuffle(2)
+        self.shuffle(1)
 
         // Reveal tiles
         for col in self.tiles {
@@ -409,17 +404,17 @@ class SliderScene: SKScene {
                     let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1)
                     tile.setScale(0.9)
                     tile.run(.sequence([
-                        .wait(forDuration: 0.25 + tilePercentile),
+                        .wait(forDuration: speedFactor * (0.25 + tilePercentile)),
                         .group([
-                            .scale(to: 1, duration: 0.5),
-                            .fadeIn(withDuration: 0.5),
+                            .scale(to: 1, duration: speedFactor * 0.5),
+                            .fadeIn(withDuration: speedFactor * 0.5),
                         ]),
                         ]))
                 }
             }
         }
         
-        self.run(.wait(forDuration: 0.5)) {
+        self.run(.wait(forDuration: speedFactor * 1.5)) {
             self.stage = .playing
         }
     }
@@ -427,18 +422,21 @@ class SliderScene: SKScene {
     private func solved() {
         self.stage = .transition
 
+        let duration = self.settings.speedFactor * 0.25
+        
         // For each tile, remove the chrome to reveal the image
         for col in self.tiles {
             for tile in col {
-                tile.label?.run(.fadeOut(withDuration: 0.25))
+                tile.label?.run(.fadeOut(withDuration: duration))
+                tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
             }
         }
 
         // Show the empty tile to complete the puzzle
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
         emptyTile.run(.sequence([
-                SKAction.fadeAlpha(to: 1, duration: 0.25),
-                SKAction.wait(forDuration: 0.75),
+                SKAction.fadeAlpha(to: 1, duration: duration),
+                SKAction.wait(forDuration: 1.0 /* intentionally without speedFactor multiplier */),
             ])) {
                 self.stage = .solved
             }
@@ -590,7 +588,7 @@ class SliderScene: SKScene {
 
         if !self.isPaused {
             // Animate the tile position
-            tile.run(.move(to: CGPoint(x: newX, y: newY), duration: 0.1)) {
+            tile.run(.move(to: CGPoint(x: newX, y: newY), duration: self.settings.speedFactor * 0.125)) {
                 self.impactOccurred()
             }
         } else {

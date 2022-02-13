@@ -87,6 +87,13 @@ struct MainView: View {
                         } maximumValueLabel: {
                             Text("Large")
                         }
+                        Slider(value: $gameSceneStore.scene.settings.speedFactor, in: 0...3) {
+                            Text("Speed")
+                        } minimumValueLabel: {
+                            Text("Fast")
+                        } maximumValueLabel: {
+                            Text("Slow")
+                        }
                     }
                         .background(RoundedRectangle(cornerRadius: 8)
                             .foregroundColor(.white)
