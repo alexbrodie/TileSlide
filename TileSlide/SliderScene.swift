@@ -75,6 +75,17 @@ extension CGRect {
             return CGRect(x: self.minX, y: newY, width: self.width, height: newHeight)
         }
     }
+    
+    public func inflate(_ size: CGFloat) -> CGRect {
+        return inflate(x: size, y: size);
+    }
+
+    public func inflate(x: CGFloat, y: CGFloat) -> CGRect {
+        return CGRect(x: self.minX - x,
+                      y: self.minY - y,
+                      width: self.width + 2 * x,
+                      height: self.height + 2 * y);
+    }
 }
 
 class SliderScene: SKScene {
@@ -88,6 +99,9 @@ class SliderScene: SKScene {
         var currentColumn: Int = -1
         // The current row position the tile occupies
         var currentRow: Int = -1
+        // The label containing the tile number associate with this
+        var label: SKLabelNode?
+        var crop: SKCropNode?
     }
     
     private enum Stage {
@@ -98,6 +112,12 @@ class SliderScene: SKScene {
     }
     
     public var settings = SliderSettings()
+    
+    // Names for different categories of nodes, useful for childNode and enumerateChildNodes
+    let nodeNameLabel = "labl"
+    let nodeNameTileImage = "timg"
+    let nodeNameTile = "tile"
+    let nodeNameCrop = "crop"
 
     // # State...
     // What phase of gameplay we are in
@@ -291,12 +311,9 @@ class SliderScene: SKScene {
         self.stage = .transition
         
         // Fade out and remove old stuff
-        for col in self.tiles {
-            for tile in col {
-                tile.run(SKAction.sequence([
-                    SKAction.fadeOut(withDuration: 0.2),
-                    SKAction.run { tile.removeFromParent() },
-                    ]))
+        self.enumerateChildNodes(withName: nodeNameTile) { (tile, stop) in
+            tile.run(.fadeOut(withDuration: 0.25)) {
+                tile.removeFromParent()
             }
         }
 
@@ -331,18 +348,38 @@ class SliderScene: SKScene {
                 let tileNumber = c + r * columns
                 
                 let rect = getTileRect(column: c, row: r)
-                var tile: Tile
+                
+                var image: SKSpriteNode
                 if tex != nil {
                     let subTexRect = CGRect.init(x: CGFloat(c) / CGFloat(columns),
                                                  y: CGFloat(rows - r - 1) / CGFloat(rows),
                                                  width: 1.0 / CGFloat(columns),
                                                  height: 1.0 / CGFloat(rows))
                     let subTex = SKTexture.init(rect: subTexRect, in: tex!)
-                    tile = Tile.init(texture: subTex, size: rect.size)
+                    image = SKSpriteNode.init(texture: subTex, size: rect.size)
                 } else {
                     let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
-                    tile = Tile.init(color: color, size: rect.size)
+                    image = SKSpriteNode.init(color: color, size: rect.size)
                 }
+                image.name = nodeNameTileImage
+
+                let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
+                label.name = nodeNameLabel
+                label.fontColor = UIColor(self.settings.tileNumberColor)
+                label.fontName = self.settings.tileNumberFontFace
+                label.fontSize = rect.height * CGFloat(self.settings.tileNumberFontSize)
+                label.horizontalAlignmentMode = .center
+                label.verticalAlignmentMode = .center
+                label.zPosition = 1
+                
+                let cropRect = rect.inflate(CGFloat(-self.settings.tileMargin))
+                let crop = SKCropNode()
+                crop.name = nodeNameCrop
+                //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
+                crop.maskNode = SKSpriteNode(color: .black, size: cropRect.size)
+                
+                let tile = Tile.init(color: .init(white: 0, alpha: 0), size: rect.size)
+                tile.name = nodeNameTile
                 tile.alpha = 0
                 tile.anchorPoint = CGPoint(x: 0.5, y: 0.5)
                 tile.position = CGPoint(x: rect.midX, y: rect.midY)
@@ -350,37 +387,38 @@ class SliderScene: SKScene {
                 tile.originalRow = r
                 tile.currentColumn = c
                 tile.currentRow = r
+                tile.label = label
+                tile.crop = crop
 
-                let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
-                label.fontColor = UIColor(self.settings.tileNumberColor)
-                label.fontName = self.settings.tileNumberFontFace
-                label.fontSize = rect.height * CGFloat(self.settings.tileNumberFontSize)
-                label.horizontalAlignmentMode = .center
-                label.verticalAlignmentMode = .center
-                label.zPosition = 1
-                tile.addChild(label)
+                crop.addChild(image)
+                crop.addChild(label)
+                tile.addChild(crop)
+                self.addChild(tile)
                 
                 tiles[c].append(tile)
-                self.addChild(tile)
             }
         }
         
-        self.shuffle()
+        self.shuffle(2)
 
         // Reveal tiles
         for col in self.tiles {
             for tile in col {
                 if tile.currentColumn != self.emptyColumn || tile.currentRow != self.emptyRow {
                     let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1)
-                    tile.run(SKAction.sequence([
-                        SKAction.wait(forDuration: tilePercentile * 0.2),
-                        SKAction.fadeAlpha(to: 1, duration: 0.3),
+                    tile.setScale(0.9)
+                    tile.run(.sequence([
+                        .wait(forDuration: 0.25 + tilePercentile),
+                        .group([
+                            .scale(to: 1, duration: 0.5),
+                            .fadeIn(withDuration: 0.5),
+                        ]),
                         ]))
                 }
             }
         }
         
-        self.run(SKAction.wait(forDuration: 0.5)) {
+        self.run(.wait(forDuration: 0.5)) {
             self.stage = .playing
         }
     }
@@ -388,14 +426,16 @@ class SliderScene: SKScene {
     private func solved() {
         self.stage = .transition
 
-        // Fade out the tile adornments - label
-        self.forEachTileNumberLabel { (label, tile) in
-            label.run(SKAction.fadeAlpha(to: 0, duration: 0.25))
+        // For each tile, remove the chrome to reveal the image
+        for col in self.tiles {
+            for tile in col {
+                tile.label?.run(.fadeOut(withDuration: 0.25))
+            }
         }
 
         // Show the empty tile to complete the puzzle
         let emptyTile = self.tiles[self.emptyColumn][self.emptyRow]
-        emptyTile.run(SKAction.sequence([
+        emptyTile.run(.sequence([
                 SKAction.fadeAlpha(to: 1, duration: 0.25),
                 SKAction.wait(forDuration: 0.75),
             ])) {
@@ -419,10 +459,8 @@ class SliderScene: SKScene {
     private func forEachTileNumberLabel(_ closure: (SKLabelNode, SKSpriteNode) -> Void) {
         for child in self.children {
             if let tile = child as? Tile {
-                for child2 in tile.children {
-                    if let label = child2 as? SKLabelNode {
-                        closure(label, tile)
-                    }
+                if let label = tile.label {
+                    closure(label, tile)
                 }
             }
         }
@@ -551,10 +589,9 @@ class SliderScene: SKScene {
 
         if !self.isPaused {
             // Animate the tile position
-            tile.run(SKAction.sequence([
-                SKAction.move(to: CGPoint(x: newX, y: newY), duration: 0.1),
-                SKAction.run { self.impactOccurred() },
-                ]))
+            tile.run(.move(to: CGPoint(x: newX, y: newY), duration: 0.1)) {
+                self.impactOccurred()
+            }
         } else {
             tile.position = CGPoint(x: newX, y: newY)
         }
