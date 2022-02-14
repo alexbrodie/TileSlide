@@ -37,7 +37,7 @@ struct MainView: View {
                             .padding(4)
                             .background(Circle()
                                 .foregroundColor(.white.opacity(0.1)))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.3))
                     }
                         .buttonStyle(.plain)
                         .padding(16)
