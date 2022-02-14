@@ -214,7 +214,9 @@ class SliderScene: SKScene, ObservableObject {
     
     private class TileNode : SKSpriteNode {
         // The board that contans this tile
-        var board: BoardNode { get { parent as! BoardNode } }
+        var board: BoardNode {
+            get { parent as! BoardNode }
+        }
         // The identifier for the tile in the board
         var ordinal: Int = -1
         // The label containing the tile number associate with this
@@ -230,6 +232,10 @@ class SliderScene: SKScene, ObservableObject {
         var model = SliderBoard()
         // Each child tile indexed by ordinal
         var tiles: [TileNode] = []
+        // Convinence accessor for the empty tile from the above collection
+        var emptyTile: TileNode {
+            get { return tiles[model.emptyOrdinal] }
+        }
     }
     
     private enum Stage {
@@ -251,8 +257,6 @@ class SliderScene: SKScene, ObservableObject {
     private let nodeNameCrop = "crp"
 
     // MARK: UI State
-    // What phase of gameplay we are in
-    private var stage: Stage = .uninitialized
     // Last time that tilting the device slid a tile
     private var lastTiltShift: Date = Date()
 
@@ -291,7 +295,7 @@ class SliderScene: SKScene, ObservableObject {
         let pitchOffset = -0.75
         let tiltThreshold = 0.25
 
-        if stage == .playing && settings.enableTiltToSlide {
+        if settings.enableTiltToSlide {
             if let data = motionManager!.deviceMotion, let board = currentBoard {
                 // Wait this long between processing tilt slides
                 let now = Date()
@@ -335,26 +339,33 @@ class SliderScene: SKScene, ObservableObject {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches {
             let location = t.location(in: self)
-            var node: SKNode? = atPoint(location)
-
-            switch stage {
-            case .playing:
-                // Walk ancestors until we get a tile
-                while node != nil {
-                    if let tile = node! as? TileNode {
-                        // Move the tile the touch was in
-                        if trySlideTile(tile) {
-                            break
-                        }
-                    }
-                    node = node!.parent
-                }
-            case .solved:
-                setup()
-            default:
-                break
+            _ = handleTouch(atPoint(location))
+        }
+    }
+    
+    private func handleTouch(_ node: SKNode) -> Bool {
+        // First chance processing - this happens on the descendants first, i.e. the bubble phase
+        if let tile = node as? TileNode {
+            // Move the tile the touch was in
+            if trySlideTile(tile) {
+                return true
             }
         }
+        
+        // Let parents try
+        if let parent = node.parent {
+            if handleTouch(parent) {
+                return true
+            }
+        }
+        
+        // Fallback handling - this happens on ancestors first, i.e. the routing phase
+        if let tile = node as? TileNode {
+            subShuffleTile(tile)
+            return true
+        }
+        
+        return false
     }
     
     // Called when the settings property is set so that we can
@@ -444,8 +455,6 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     private func setupBoard(texture: SKTexture?, columns: Int, rows: Int) {
-        stage = .transition
-        
         cleanupBoard()
         
         let rect = frame.middleWithAspect(texture?.size().aspect ?? 1)
@@ -459,35 +468,6 @@ class SliderScene: SKScene, ObservableObject {
 
         revealTiles(board)
         revealTiles(subBoard)
-
-        run(.wait(forDuration: settings.speedFactor * 1.5)) { [weak self] () in
-            self?.stage = .playing
-        }
-    }
-    
-    private func solved(_ board: BoardNode) {
-        stage = .transition
-
-        let duration = settings.speedFactor * 0.25
-        
-        // For each tile, remove the chrome to reveal the image, and make sure
-        // that it's full visible (especially for the "empty" tile)
-        for tile in board.tiles {
-            tile.label?.run(.fadeOut(withDuration: duration))
-            tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
-            tile.run(.fadeIn(withDuration: duration))
-        }
-
-        // See if an ancestor is a tile
-        if let tile = tileAncestorOf(board) {
-            tile.label?.run(.fadeIn(withDuration: duration))
-        }
-
-        // Pause for a second (intentionally without speedFactor multiplier) before
-        // officially moving from transition to solved which will allow input
-        run(.wait(forDuration: 1.0)) { [weak self] () in
-            self?.stage = .solved
-        }
     }
     
     // MARK: BoardNode methods
@@ -517,14 +497,18 @@ class SliderScene: SKScene, ObservableObject {
         // Create board with same size, position and texture as the tile's content sprite
         let node = tile.content!
         let board = createBoard(columns: columns, rows: rows, texture: node.texture, rect: node.frame)
-        // For now we assume we're doing this before all ancestors are added to tree
-        // so no graceful animations
+        // If the content is already being shown then we need to show the new board
+        // before we remove the old content. Otherwise, we'll rely on
+        if !node.isHidden {
+            for tile in board.tiles {
+                tile.alpha = 1
+            }
+        }
         board.zPosition = node.zPosition
         board.alpha = node.alpha
         node.parent!.addChild(board)
         node.removeFromParent()
         tile.content = board
-        tile.label?.alpha = 0
         return board
     }
     
@@ -535,11 +519,12 @@ class SliderScene: SKScene, ObservableObject {
         
         var contentNode: SKSpriteNode
         if let tex = texture {
+            let texRect = tex.textureRect()
             let subTexRect = CGRect(
-                x: CGFloat(coord.column) / CGFloat(board.model.columns),
-                y: CGFloat(board.model.rows - coord.row - 1) / CGFloat(board.model.rows),
-                width: 1.0 / CGFloat(board.model.columns),
-                height: 1.0 / CGFloat(board.model.rows))
+                x: texRect.minX + texRect.width * CGFloat(coord.column) / CGFloat(board.model.columns),
+                y: texRect.minY + texRect.height * CGFloat(board.model.rows - coord.row - 1) / CGFloat(board.model.rows),
+                width: texRect.width / CGFloat(board.model.columns),
+                height: texRect.height / CGFloat(board.model.rows))
             let subTex = SKTexture(rect: subTexRect, in: tex)
             contentNode = SKSpriteNode(texture: subTex, size: rect.size)
         } else {
@@ -557,13 +542,9 @@ class SliderScene: SKScene, ObservableObject {
         labelNode.verticalAlignmentMode = .center
         labelNode.zPosition = 1
         
-        let margin = min(rect.width, rect.height) * -0.5 * settings.tileMarginSize
-        let cropRect = rect.inflate(margin)
-        
         let cropNode = SKCropNode()
         cropNode.name = nodeNameCrop
-        //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
-        cropNode.maskNode = SKSpriteNode(color: .black, size: cropRect.size)
+        cropNode.maskNode = SKSpriteNode(color: .black, size: rect.size)
         
         let tileNode = TileNode(color: .clear, size: rect.size)
         tileNode.name = nodeNameTile
@@ -588,19 +569,75 @@ class SliderScene: SKScene, ObservableObject {
         let delay: TimeInterval = 0.25
         let stagger: TimeInterval = 1.0
         let duration: TimeInterval = 0.5
-        for tile in board.tiles {
-            if tile.ordinal != board.model.emptyOrdinal {
-                let tilePercentile = CGFloat(tile.ordinal) / CGFloat(board.model.ordinalPositions.count - 1)
-                tile.setScale(0.9)
-                tile.run(.sequence([
-                    .wait(forDuration: settings.speedFactor * (delay + stagger * tilePercentile)),
-                    .group([
-                        .scale(to: 1, duration: settings.speedFactor * duration),
-                        .fadeIn(withDuration: settings.speedFactor * duration),
-                    ]),
-                    ]))
+        let solvedReveal: TimeInterval = 0.5
+        
+        if board.model.isSolved {
+            for tile in board.tiles {
+                tile.run(.fadeIn(withDuration: solvedReveal))
+            }
+        } else {
+            for tile in board.tiles {
+                if tile.ordinal != board.model.emptyOrdinal {
+                    let tilePercentile = CGFloat(tile.ordinal) / CGFloat(board.model.ordinalPositions.count - 1)
+                    tile.setScale(0.9)
+                    tile.run(.sequence([
+                        .wait(forDuration: settings.speedFactor * (delay + stagger * tilePercentile)),
+                        .group([
+                            .scale(to: 1, duration: settings.speedFactor * duration),
+                            .fadeIn(withDuration: settings.speedFactor * duration),
+                        ]),
+                        ]))
+                }
             }
         }
+    }
+    
+    // Called when the board enters the solved state - inverse of unsolved
+    private func solved(_ board: BoardNode) {
+        let duration: TimeInterval = settings.speedFactor * 0.25
+        
+        // For each tile, remove the chrome to reveal the image, and make sure
+        // that it's full visible (especially for the "empty" tile)
+        for tile in board.tiles {
+            tile.label?.run(.fadeOut(withDuration: duration))
+            tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
+        }
+
+        board.emptyTile.run(.fadeIn(withDuration: duration))
+
+        // See if an ancestor is a tile
+        if let tile = tileAncestorOf(board) {
+            tile.label?.run(.fadeIn(withDuration: duration))
+        }
+    }
+    
+    // Called when the board enters the unsolved state - inverse of solved
+    private func unsolved(_ board: BoardNode) {
+        let duration: TimeInterval = settings.speedFactor * 0.25
+
+        for tile in board.tiles {
+            if tile.ordinal != board.model.emptyOrdinal {
+                tile.label?.run(.fadeIn(withDuration: duration))
+                if let crop = tile.crop {
+                    let margin = min(tile.size.width, tile.size.height) * settings.tileMarginSize
+                    let cropSize = CGSize(width: tile.size.width - margin, height: tile.size.height - margin)
+                    crop.maskNode?.run(.scale(to: cropSize, duration: duration))
+                }
+            }
+        }
+
+        board.emptyTile.run(.fadeOut(withDuration: duration))
+
+        // See if an ancestor is a tile
+        if let tile = tileAncestorOf(board) {
+            tile.label?.run(.fadeOut(withDuration: duration))
+        }
+    }
+    
+    // Gets the size of a crop node in the cropped state (showing margins)
+    private func getCropNodeSize(_ tileSize: CGSize) -> CGSize {
+        let margin = min(size.width, size.height) * settings.tileMarginSize
+        return CGSize(width: size.width - margin, height: size.height - margin)
     }
     
     // Get the rectangle for the given grid coordinate
@@ -689,12 +726,16 @@ class SliderScene: SKScene, ObservableObject {
     }
 
     // Move the tile at the specified position offset from the empty tile into
-    // the empty slot by swapping the two's tile position (with animations)
+    // the empty slot by swapping the two's tile position (with animations).
+    // This is the base operation for any tile movement.
     private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int) -> Bool {
+        let wasSolved = board.model.isSolved
         if let ordinal = board.model.swapWithEmpty(horizontalOffset: horizontalOffset, verticalOffset: verticalOffset) {
             updateTilePosition(board, ordinal: ordinal)
             if board.model.isSolved {
                 solved(board)
+            } else if wasSolved {
+                unsolved(board)
             }
             return true
         } else {
@@ -705,6 +746,7 @@ class SliderScene: SKScene, ObservableObject {
     // Moves the specified tile if possible
     private func trySlideTile(_ tile: TileNode) -> Bool {
         let m = tile.board.model
+        guard !m.isSolved else { return false }
         let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
         let tileCoord = m.getOrdinalCoordinate(tile.ordinal)
         if tileCoord.column == emptyCoord.column {
@@ -744,6 +786,15 @@ class SliderScene: SKScene, ObservableObject {
         }
         // Can't move
         return false
+    }
+    
+    // Turns a tile into a sub-board if it's not already and then shuffles it
+    private func subShuffleTile(_ tile: TileNode) {
+        var subBoard = tile.content as? BoardNode
+        if subBoard == nil {
+            subBoard = createSubBoard(columns: 3, rows: 3, tile: tile)
+        }
+        shuffle(subBoard!, count: 3)
     }
     
     // MARK: Node Lookup
