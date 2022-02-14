@@ -12,204 +12,6 @@ import GameplayKit
 import SpriteKit
 import SwiftUI
 
-extension UIImage {
-    // Returns a version of this image rotate by the specified amount
-    public func rotate(degrees: CGFloat) -> UIImage {
-        // Calculate the size of the rotated view's containing box for our drawing space
-        let rotatedViewBox: UIView = UIView(frame: CGRect(x: 0, y: 0, width: size.width, height: size.height))
-        rotatedViewBox.transform = CGAffineTransform(rotationAngle: degrees * CGFloat.pi / 180)
-        let rotatedSize: CGSize = rotatedViewBox.frame.size
-
-        UIGraphicsBeginImageContext(rotatedSize)
-
-        // Create the bitmap context
-        let bitmap: CGContext = UIGraphicsGetCurrentContext()!
-
-        // Move the origin to the middle of the image so we will rotate and scale around the center.
-        bitmap.translateBy(x: rotatedSize.width / 2, y: rotatedSize.height / 2)
-
-        // Rotate the image context
-        bitmap.rotate(by: (degrees * CGFloat.pi / 180))
-
-        // Now, draw the rotated/scaled image into the context
-        bitmap.scaleBy(x: 1.0, y: -1.0)
-        bitmap.draw(cgImage!, in: CGRect(x: -size.width / 2, y: -size.height / 2, width: size.width, height: size.height))
-        let newImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
-
-        UIGraphicsEndImageContext()
-
-        return newImage
-    }
-    
-    // Returns a version of this image cropped by the specified area
-    public func crop(rect: CGRect) -> UIImage {
-        var rect = rect
-        rect.origin.x *= scale
-        rect.origin.y *= scale
-        rect.size.width *= scale
-        rect.size.height *= scale
-        
-        let imageRef = cgImage!.cropping(to: rect)
-        return UIImage(cgImage: imageRef!, scale: scale, orientation: imageOrientation)
-    }
-}
-
-extension CGSize {
-    // The aspect ratio of this size
-    public var aspect: CGFloat {
-        get { return width / height }
-    }
-}
-
-extension CGRect {
-    // The middle point in the rect
-    public var mid: CGPoint {
-        get { return CGPoint(x: midX, y: midY) }
-    }
-    
-    // Returns the largest rectangle with the specified aspect ratio that
-    // fits within this which is centered horizontally or vertically
-    public func middleWithAspect(_ aspect: CGFloat) -> CGRect {
-        if width / height > aspect {
-            // I'm wider given the same height, shorter given same width
-            // Scale foo by (height / foo.height) to fit within:
-            // newWidth = foo.width * (height / foo.height)
-            //          = height * aspect
-            // newHeight = foo.height * (height / foo.height)
-            //           = height
-            let newWidth = height * aspect
-            let newX = minX + (width - newWidth) * 0.5
-            return CGRect(x: newX, y: minY, width: newWidth, height: height)
-        } else {
-            // Parent is skinnier given same height, taller given same width
-            // Scale img by (width / foo.width) to fit within
-            // newWidth = foo.width * (width / foo.width)
-            //          = width
-            // newHeight = foo.height * (width / foo.width)
-            //           = width / aspect
-            let newHeight = width / aspect
-            let newY = minY + (height - newHeight) * 0.5
-            return CGRect(x: minX, y: newY, width: width, height: newHeight)
-        }
-    }
-    
-    // Returns a version of this rectangle inflated by the specified amount
-    public func inflate(_ size: CGFloat) -> CGRect {
-        return inflate(x: size, y: size);
-    }
-
-    // Returns a version of this rectangle inflated by the specified amount
-    public func inflate(x: CGFloat, y: CGFloat) -> CGRect {
-        return CGRect(x: minX - x,
-                      y: minY - y,
-                      width: width + 2 * x,
-                      height: height + 2 * y);
-    }
-}
-
-// A slider board is a grid of tiles, one of which is denoted as "empty".
-// In addition to a (column, row) coordinates, the various positions in
-// the grid are given an index reading left to right, top to bottom.
-// Tiles are then identified by their "ordinal" - the name we give to the
-// index of the solved position of the tile.
-class SliderBoard {
-    struct Coordinate {
-        let column: Int
-        let row: Int
-    }
-    
-    // The number of columns of tiles (immutable)
-    public let columns: Int
-    // THe number of rows of tiles (immutable)
-    public let rows: Int
-    // The identifier for the special empty tile
-    public let emptyOrdinal: Int
-    // The current position index of each ordinal, i.e. the current column
-    // and row position of a tile is indexToCoordinate(tiles[ordinal])
-    public private(set) var ordinalPositions: [Int]
-    // Inner value used to cache results of isSolved
-    private var isSolvedResult: Bool?
-    
-    public init() {
-        columns = 0
-        rows = 0
-        emptyOrdinal = -1
-        ordinalPositions = []
-    }
-
-    public init(columns inColumns: Int,
-                row inRows: Int,
-                emptyTileOrdinal inEmptyTileOrdinal: Int) {
-        columns = inColumns
-        rows = inRows
-        emptyOrdinal = inEmptyTileOrdinal
-        ordinalPositions = Array(0..<(inColumns * inRows))
-    }
-    
-    public var isSolved: Bool {
-        get {
-            if isSolvedResult == nil {
-                isSolvedResult = calculateIsSolved()
-            }
-            return isSolvedResult!
-        }
-    }
-    
-    // Convert a position from index to coordinate form
-    public func indexToCoordinate(_ index: Int) -> Coordinate {
-        return Coordinate(column: index % columns, row: index / columns)
-    }
-    
-    // Convert a position from coordinate to index form
-    public func coordinateToIndex(_ coordinate: Coordinate) -> Int {
-        return coordinateToIndex(column: coordinate.column, row: coordinate.row)
-    }
-
-    // Convert a position from coordinate to index form
-    public func coordinateToIndex(column: Int, row: Int) -> Int {
-        return column + row * columns
-    }
-    
-    // Convinence method to get the position for an ordinal in coordinate form
-    public func getOrdinalCoordinate(_ ordinal: Int) -> Coordinate {
-        return indexToCoordinate(ordinalPositions[ordinal])
-    }
-    
-    // The inverse of ordinalPositions, it returns a value such that
-    // ordinalPositions[returnValue] == index
-    public func getOrdinalAtPosition(_ index: Int) -> Int {
-        // For now this a rarish operation and on small collections, so do
-        // linear search rather than bothering with managing a reverse lookup
-        return ordinalPositions.firstIndex(of: index)!
-    }
-    
-    // Satisfies the specialty need to find what (if any) tile is at a position
-    // offset relative to the empty tile and swap positions with the empty tile.
-    // Returns the ordinal of the tile swapped with empty if it could swap.
-    public func swapWithEmpty(horizontalOffset: Int, verticalOffset: Int) -> Int? {
-        let emptyPosIdx = ordinalPositions[emptyOrdinal]
-        let emptyCoord = indexToCoordinate(emptyPosIdx)
-        let column = emptyCoord.column + horizontalOffset
-        guard 0 <= column && column < columns else { return nil }
-        let row = emptyCoord.row + verticalOffset
-        guard 0 <= row && row < rows else { return nil }
-        let otherPosIdx = coordinateToIndex(column: column, row: row)
-        let otherOrd = getOrdinalAtPosition(otherPosIdx)
-        ordinalPositions.swapAt(emptyOrdinal, otherOrd)
-        isSolvedResult = nil
-        return otherOrd
-    }
-    
-    private func calculateIsSolved() -> Bool {
-        for i in 0..<ordinalPositions.count {
-            guard i == ordinalPositions[i] else {
-                return false
-            }
-        }
-        return true
-    }
-}
-
 class SliderScene: SKScene, ObservableObject {
     
     private class TileNode : SKSpriteNode {
@@ -445,6 +247,8 @@ class SliderScene: SKScene, ObservableObject {
         setupBoard(texture: SKTexture(imageNamed: name), columns: 3, rows: 3)
     }
     
+    // MARK: BoardNode methods
+    
     private func cleanupBoard() {
         // Fade out and remove old stuff
         enumerateChildNodes(withName: nodeNameBoard) { (board, stop) in
@@ -457,21 +261,12 @@ class SliderScene: SKScene, ObservableObject {
     
     private func setupBoard(texture: SKTexture?, columns: Int, rows: Int) {
         cleanupBoard()
-        
         let rect = frame.middleWithAspect(texture?.size().aspect ?? 1)
         let board = createBoard(columns: columns, rows: rows, texture: texture, rect: rect)
         shuffle(board)
-
-        let subBoard = createSubBoard(columns: 3, rows: 3, tile: board.tiles[3])
-        shuffle(subBoard, count: 2)
-        
         addChild(board)
-
         revealTiles(board)
-        revealTiles(subBoard)
     }
-    
-    // MARK: BoardNode methods
     
     private func createBoard(columns: Int, rows: Int, texture: SKTexture?, rect: CGRect) -> BoardNode {
         let model = SliderBoard(columns: columns,
@@ -608,7 +403,9 @@ class SliderScene: SKScene, ObservableObject {
 
         // See if an ancestor is a tile
         if let tile = tileAncestorOf(board) {
-            tile.label?.run(.fadeIn(withDuration: duration))
+            if !tile.board.model.isSolved {
+                tile.label?.run(.fadeIn(withDuration: duration))
+            }
         }
     }
     
