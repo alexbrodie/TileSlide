@@ -10,6 +10,7 @@ import Combine
 import CoreMotion
 import GameplayKit
 import SpriteKit
+import SwiftUI
 
 extension UIImage {
     public func rotate(degrees: CGFloat) -> UIImage {
@@ -88,7 +89,7 @@ extension CGRect {
     }
 }
 
-class SliderScene: SKScene {
+class SliderScene: SKScene, ObservableObject {
     
     private class Tile : SKSpriteNode {
         // The original column position the tile occupies
@@ -111,7 +112,9 @@ class SliderScene: SKScene {
         case solved
     }
     
-    public var settings = SliderSettings()
+    @ObservedObject var settings = SliderSettings() {
+        didSet { onSettingsReplaced() }
+    }
     
     // Names for different categories of nodes, useful for childNode and enumerateChildNodes
     let nodeNameLabel = "labl"
@@ -154,16 +157,7 @@ class SliderScene: SKScene {
         super.init(size: CGSize(width: 0, height: 0))
         self.backgroundColor = .black
         self.scaleMode = .resizeFill
-        self.settings.$tileNumberColor.sink { value in
-            self.forEachTileNumberLabel { (label, tile) in
-                label.fontColor = UIColor(value)
-            }
-        }.store(in: &cancellableBag)
-        self.settings.$tileNumberFontSize.sink { value in
-            self.forEachTileNumberLabel { (label, tile) in
-                label.fontSize = tile.size.height * CGFloat(value)
-            }
-        }.store(in: &cancellableBag)
+        onSettingsReplaced()
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -244,6 +238,25 @@ class SliderScene: SKScene {
                 break
             }
         }
+    }
+    
+    private func onSettingsReplaced() {
+        // Clear old sinks
+        for o in cancellableBag {
+            o.cancel()
+        }
+        cancellableBag.removeAll()
+        // Set up new sinks
+        self.settings.$tileNumberColor.sink { value in
+            self.forEachTileNumberLabel { (label, tile) in
+                label.fontColor = UIColor(value)
+            }
+        }.store(in: &cancellableBag)
+        self.settings.$tileNumberFontSize.sink { value in
+            self.forEachTileNumberLabel { (label, tile) in
+                label.fontSize = tile.size.height * CGFloat(value)
+            }
+        }.store(in: &cancellableBag)
     }
     
     private func setEnableTiltToSlide(_ enable: Bool) {
