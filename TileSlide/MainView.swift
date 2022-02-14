@@ -12,16 +12,16 @@ import SpriteKit
 struct MainView: View {
     @State private var settingsPresented: Bool = false
     @StateObject private var settings = SliderSettings()
-    @StateObject private var gameScene = SliderScene()
+    @StateObject private var game = SliderScene()
     
     var body: some View {
         ZStack {
             // Main
-            SpriteView(scene: gameScene)
+            SpriteView(scene: game)
                 .ignoresSafeArea()
                 .blur(radius: settingsPresented ? 2 : 0, opaque: true)
                 .onAppear {
-                    gameScene.settings = settings
+                    game.settings = settings
                 }
             // HUD
             VStack {

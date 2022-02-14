@@ -13,6 +13,7 @@ import SpriteKit
 import SwiftUI
 
 extension UIImage {
+    // Returns a version of this image rotate by the specified amount
     public func rotate(degrees: CGFloat) -> UIImage {
         // Calculate the size of the rotated view's containing box for our drawing space
         let rotatedViewBox: UIView = UIView(frame: CGRect(x: 0, y: 0, width: self.size.width, height: self.size.height))
@@ -40,6 +41,7 @@ extension UIImage {
         return newImage
     }
     
+    // Returns a version of this image cropped by the specified area
     public func crop(rect: CGRect) -> UIImage {
         var rect = rect
         rect.origin.x *= self.scale
@@ -52,7 +54,16 @@ extension UIImage {
     }
 }
 
+extension CGSize {
+    // The aspect ratio of this size
+    public var aspect: CGFloat {
+        get { return self.width / self.height }
+    }
+}
+
 extension CGRect {
+    // Returns the largest rectangle with the specified aspect ratio that
+    // fits within this which is centered horizontally or vertically
     public func middleWithAspect(_ aspect: CGFloat) -> CGRect {
         if self.width / self.height > aspect {
             // I'm wider given the same height, shorter given same width
@@ -77,10 +88,12 @@ extension CGRect {
         }
     }
     
+    // Returns a version of this rectangle inflated by the specified amount
     public func inflate(_ size: CGFloat) -> CGRect {
         return inflate(x: size, y: size);
     }
 
+    // Returns a version of this rectangle inflated by the specified amount
     public func inflate(x: CGFloat, y: CGFloat) -> CGRect {
         return CGRect(x: self.minX - x,
                       y: self.minY - y,
@@ -315,14 +328,14 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     private func setup() {
-        self.setup(image: UIImage.init(named: "sample"), columns: 4, rows: 3)
+        self.setup(texture: SKTexture.init(imageNamed: "sample"), columns: 4, rows: 3)
     }
     
     private func cleanup() {
-        self.setup(image: nil, columns: 0, rows: 0)
+        self.setup(texture: nil, columns: 0, rows: 0)
     }
     
-    private func setup(image: UIImage?, columns: Int, rows: Int) {
+    private func setup(texture: SKTexture?, columns: Int, rows: Int) {
         self.stage = .transition
         
         let speedFactor = self.settings.speedFactor
@@ -340,70 +353,15 @@ class SliderScene: SKScene, ObservableObject {
         self.emptyColumn = columns - 1
         self.emptyRow = rows - 1
         self.tiles.removeAll()
-        self.tilesContentAspect = 0
-
-        // Make texture for the sprite nodes
-        var tex: SKTexture?
-        if let img = image {
-            tex = SKTexture.init(image: img)
-            self.tilesContentAspect = img.size.width / img.size.height
-        }
+        self.tilesContentAspect = texture?.size().aspect ?? 0
         
         // Build nodes for each tile (initially hidden)
         for c in 0..<columns {
             self.tiles.append([])
             for r in 0..<rows {
-                let tileNumber = c + r * columns
-                
-                let rect = getTileRect(column: c, row: r)
-                
-                var image: SKSpriteNode
-                if tex != nil {
-                    let subTexRect = CGRect.init(x: CGFloat(c) / CGFloat(columns),
-                                                 y: CGFloat(rows - r - 1) / CGFloat(rows),
-                                                 width: 1.0 / CGFloat(columns),
-                                                 height: 1.0 / CGFloat(rows))
-                    let subTex = SKTexture.init(rect: subTexRect, in: tex!)
-                    image = SKSpriteNode.init(texture: subTex, size: rect.size)
-                } else {
-                    let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
-                    image = SKSpriteNode.init(color: color, size: rect.size)
-                }
-                image.name = nodeNameTileImage
-
-                let label = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
-                label.name = nodeNameLabel
-                label.fontColor = UIColor(self.settings.tileNumberColor)
-                label.fontName = self.settings.tileNumberFontFace
-                label.fontSize = rect.height * CGFloat(self.settings.tileNumberFontSize)
-                label.horizontalAlignmentMode = .center
-                label.verticalAlignmentMode = .center
-                label.zPosition = 1
-                
-                let margin = min(rect.width, rect.height) * -0.5 * self.settings.tileMarginSize
-                let cropRect = rect.inflate(margin)
-                let crop = SKCropNode()
-                crop.name = nodeNameCrop
-                //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
-                crop.maskNode = SKSpriteNode(color: .black, size: cropRect.size)
-                
-                let tile = Tile.init(color: .init(white: 0, alpha: 0), size: rect.size)
-                tile.name = nodeNameTile
+                let tile = createTile(texture: texture, column: c, row: r)
                 tile.alpha = 0
-                tile.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-                tile.position = CGPoint(x: rect.midX, y: rect.midY)
-                tile.originalColumn = c
-                tile.originalRow = r
-                tile.currentColumn = c
-                tile.currentRow = r
-                tile.label = label
-                tile.crop = crop
-
-                crop.addChild(image)
-                crop.addChild(label)
-                tile.addChild(crop)
                 self.addChild(tile)
-                
                 tiles[c].append(tile)
             }
         }
@@ -466,6 +424,59 @@ class SliderScene: SKScene, ObservableObject {
         let x = bounds.minX + CGFloat(column) * tileWidth
         let y = bounds.maxY - CGFloat(row + 1) * tileHeight
         return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
+    }
+    
+    // Builds a tile that is populated but not attached to anything
+    private func createTile(texture: SKTexture?, column: Int, row: Int) -> Tile {
+        let rect = getTileRect(column: column, row: row)
+        let tileNumber = column + row * self.columns
+        
+        var imageNode: SKSpriteNode
+        if let tex = texture {
+            let subTexRect = CGRect.init(x: CGFloat(column) / CGFloat(columns),
+                                         y: CGFloat(rows - row - 1) / CGFloat(rows),
+                                         width: 1.0 / CGFloat(columns),
+                                         height: 1.0 / CGFloat(rows))
+            let subTex = SKTexture.init(rect: subTexRect, in: tex)
+            imageNode = SKSpriteNode.init(texture: subTex, size: rect.size)
+        } else {
+            let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
+            imageNode = SKSpriteNode.init(color: color, size: rect.size)
+        }
+        imageNode.name = nodeNameTileImage
+
+        let labelNode = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
+        labelNode.name = nodeNameLabel
+        labelNode.fontColor = UIColor(self.settings.tileNumberColor)
+        labelNode.fontName = self.settings.tileNumberFontFace
+        labelNode.fontSize = rect.height * CGFloat(self.settings.tileNumberFontSize)
+        labelNode.horizontalAlignmentMode = .center
+        labelNode.verticalAlignmentMode = .center
+        labelNode.zPosition = 1
+        
+        let margin = min(rect.width, rect.height) * -0.5 * self.settings.tileMarginSize
+        let cropRect = rect.inflate(margin)
+        let cropNode = SKCropNode()
+        cropNode.name = nodeNameCrop
+        //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
+        cropNode.maskNode = SKSpriteNode(color: .black, size: cropRect.size)
+        
+        let tileNode = Tile.init(color: .init(white: 0, alpha: 0), size: rect.size)
+        tileNode.name = nodeNameTile
+        tileNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        tileNode.position = CGPoint(x: rect.midX, y: rect.midY)
+        tileNode.originalColumn = column
+        tileNode.originalRow = row
+        tileNode.currentColumn = column
+        tileNode.currentRow = row
+        tileNode.label = labelNode
+        tileNode.crop = cropNode
+
+        cropNode.addChild(imageNode)
+        cropNode.addChild(labelNode)
+        tileNode.addChild(cropNode)
+        
+        return tileNode
     }
     
     private func forEachTileNumberLabel(_ closure: (SKLabelNode, SKSpriteNode) -> Void) {
