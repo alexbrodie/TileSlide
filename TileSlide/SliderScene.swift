@@ -50,7 +50,7 @@ extension UIImage {
         rect.size.height *= scale
         
         let imageRef = cgImage!.cropping(to: rect)
-        return UIImage.init(cgImage: imageRef!, scale: scale, orientation: imageOrientation)
+        return UIImage(cgImage: imageRef!, scale: scale, orientation: imageOrientation)
     }
 }
 
@@ -62,6 +62,11 @@ extension CGSize {
 }
 
 extension CGRect {
+    // The middle point in the rect
+    public var mid: CGPoint {
+        get { return CGPoint(x: midX, y: midY) }
+    }
+    
     // Returns the largest rectangle with the specified aspect ratio that
     // fits within this which is centered horizontally or vertically
     public func middleWithAspect(_ aspect: CGFloat) -> CGRect {
@@ -102,21 +107,115 @@ extension CGRect {
     }
 }
 
+// A slider board is a grid of tiles, one of which is denoted as "empty".
+// In addition to a (column, row) coordinates, the various positions in
+// the grid are given an index reading left to right, top to bottom.
+// Tiles are then identified by their "ordinal" - the name we give to the
+// index of the solved position of the tile.
+class SliderBoard {
+    struct Coordinate {
+        let column: Int
+        let row: Int
+    }
+    
+    // The number of columns of tiles (immutable)
+    public let columns: Int
+    // THe number of rows of tiles (immutable)
+    public let rows: Int
+    // The identifier for the special empty tile
+    public let emptyOrdinal: Int
+    // The current position index of each ordinal, i.e. the current column
+    // and row position of a tile is indexToCoordinate(tiles[ordinal])
+    public private(set) var ordinalPositions: [Int]
+    
+    public init() {
+        columns = 0
+        rows = 0
+        emptyOrdinal = -1
+        ordinalPositions = []
+    }
+
+    public init(columns inColumns: Int,
+                row inRows: Int,
+                emptyTileOrdinal inEmptyTileOrdinal: Int) {
+        columns = inColumns
+        rows = inRows
+        emptyOrdinal = inEmptyTileOrdinal
+        ordinalPositions = Array(0..<(inColumns * inRows))
+    }
+    
+    // Convert a position from index to coordinate form
+    public func indexToCoordinate(_ index: Int) -> Coordinate {
+        return Coordinate(column: index % columns, row: index / columns)
+    }
+    
+    // Convert a position from coordinate to index form
+    public func coordinateToIndex(_ coordinate: Coordinate) -> Int {
+        return coordinateToIndex(column: coordinate.column, row: coordinate.row)
+    }
+
+    // Convert a position from coordinate to index form
+    public func coordinateToIndex(column: Int, row: Int) -> Int {
+        return column + row * columns
+    }
+    
+    // Convinence method to get the position for an ordinal in coordinate form
+    public func getOrdinalCoordinate(_ ordinal: Int) -> Coordinate {
+        return indexToCoordinate(ordinalPositions[ordinal])
+    }
+    
+    // The inverse of ordinalPositions, it returns a value such that
+    // ordinalPositions[returnValue] == index
+    public func getOrdinalAtPosition(_ index: Int) -> Int {
+        // For now this a rarish operation and on small collections, so do
+        // linear search rather than bothering with managing a reverse lookup
+        return ordinalPositions.firstIndex(of: index)!
+    }
+    
+    // Satisfies the specialty need to find what (if any) tile is at a position
+    // offset relative to the empty tile and swap positions with the empty tile.
+    // Returns the ordinal of the tile swapped with empty if it could swap.
+    public func swapWithEmpty(horizontalOffset: Int, verticalOffset: Int) -> Int? {
+        let emptyPosIdx = ordinalPositions[emptyOrdinal]
+        let emptyCoord = indexToCoordinate(emptyPosIdx)
+        let column = emptyCoord.column + horizontalOffset
+        guard 0 <= column && column < columns else { return nil }
+        let row = emptyCoord.row + verticalOffset
+        guard 0 <= row && row < rows else { return nil }
+        let otherPosIdx = coordinateToIndex(column: column, row: row)
+        let otherOrd = getOrdinalAtPosition(otherPosIdx)
+        ordinalPositions.swapAt(emptyOrdinal, otherOrd)
+        return otherOrd
+    }
+    
+    public func isSolved() -> Bool {
+        for i in 0..<ordinalPositions.count {
+            guard i == ordinalPositions[i] else {
+                return false
+            }
+        }
+        return true
+    }
+}
+
 class SliderScene: SKScene, ObservableObject {
     
-    private class Tile : SKSpriteNode {
-        // The original column position the tile occupies
-        var originalColumn: Int = -1
-        // The original row position the tile occupies
-        var originalRow: Int = -1
-        // The current column position the tile occupies
-        var currentColumn: Int = -1
-        // The current row position the tile occupies
-        var currentRow: Int = -1
+    private class TileNode : SKSpriteNode {
+        // The board that contans this tile
+        var board: BoardNode { get { parent as! BoardNode } }
+        // The identifier for the tile in the board
+        var ordinal: Int = -1
         // The label containing the tile number associate with this
         var label: SKLabelNode?
         // The crop node used to implement margins
         var crop: SKCropNode?
+    }
+    
+    private class BoardNode : SKSpriteNode {
+        // The current state of the board
+        var model = SliderBoard()
+        // Each child tile indexed by ordinal
+        var tiles: [TileNode] = []
     }
     
     private enum Stage {
@@ -130,32 +229,19 @@ class SliderScene: SKScene, ObservableObject {
         didSet { onSettingsReplaced() }
     }
     
-    // Names for different categories of nodes, useful for childNode and enumerateChildNodes
-    private let nodeNameLabel = "labl"
-    private let nodeNameTileImage = "timg"
-    private let nodeNameTile = "tile"
-    private let nodeNameCrop = "crop"
+    // MARK: Node Names
+    private let nodeNameBoard = "brd"
+    private let nodeNameLabel = "lbl"
+    private let nodeNameTileContent = "con"
+    private let nodeNameTile = "til"
+    private let nodeNameCrop = "crp"
 
-    // # UI State...
+    // MARK: UI State
     // What phase of gameplay we are in
     private var stage: Stage = .uninitialized
     // Last time that tilting the device slid a tile
-    private var lastTiltShift: Date = Date.init()
+    private var lastTiltShift: Date = Date()
 
-    // # Board state...
-    // The total number of columns
-    private var columns: Int = 0
-    // The total number or rows
-    private var rows: Int = 0
-    // The column of the currently unoccupied tile
-    private var emptyColumn: Int = -1
-    // The row of the currently unoccupied tile
-    private var emptyRow: Int = -1
-    // A 2D array of tiles indexed by current position
-    private var tiles: [[Tile]] = []
-    // The aspect ratio of the content backing the tiles, or 0 if unset
-    private var tilesContentAspect: CGFloat = 0
-    
     // # Connections...
     private var cancellableBag = Set<AnyCancellable>()
     // Generator for feedback, e.g. haptics
@@ -164,6 +250,8 @@ class SliderScene: SKScene, ObservableObject {
     private var motionManager: CMMotionManager? = nil
     
     // # Children...
+    // The current board
+    private var currentBoard: BoardNode? = nil
     // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
     
@@ -190,9 +278,9 @@ class SliderScene: SKScene, ObservableObject {
         let tiltThreshold = 0.25
 
         if stage == .playing && settings.enableTiltToSlide {
-            if let data = motionManager!.deviceMotion {
+            if let data = motionManager!.deviceMotion, let board = currentBoard {
                 // Wait this long between processing tilt slides
-                let now = Date.init()
+                let now = Date()
                 if lastTiltShift + tiltDelay < now {
                     let yaw = data.attitude.yaw
                     let pitch = data.attitude.pitch + pitchOffset
@@ -205,20 +293,20 @@ class SliderScene: SKScene, ObservableObject {
                     if abs(pitch) > abs(roll) {
                         if pitch < -tiltThreshold {
                             // Negative pitch == tilt forward
-                            slid = slideUp()
+                            slid = slideUp(board)
                         } else if pitch > tiltThreshold {
                             // Positive pitch == tilt backward
-                            slid = slideDown()
+                            slid = slideDown(board)
                         }
                     }
                     
                     if !slid {
                         if roll < -tiltThreshold {
                             // Negative roll == tilt left
-                            slid = slideLeft()
+                            slid = slideLeft(board)
                         } else if roll > tiltThreshold {
                             // Positive roll == tilt right
-                            slid = slideRight()
+                            slid = slideRight(board)
                         }
                     }
                     
@@ -239,10 +327,11 @@ class SliderScene: SKScene, ObservableObject {
             case .playing:
                 // Walk ancestors until we get a tile
                 while node != nil {
-                    if let tile = node! as? Tile {
+                    if let tile = node! as? TileNode {
                         // Move the tile the touch was in
-                        _ = trySlideTile(tile)
-                        break
+                        if trySlideTile(tile) {
+                            break
+                        }
                     }
                     node = node!.parent
                 }
@@ -264,13 +353,13 @@ class SliderScene: SKScene, ObservableObject {
         cancellableBag.removeAll()
         // Set up new sinks
         settings.$tileNumberColor.sink { [weak self] value in
-            self?.forEachTileNumberLabel { (label, tile) in
-                label.fontColor = UIColor(value)
+            self?.forEachTile { (board, tile) in
+                tile.label?.fontColor = UIColor(value)
             }
         }.store(in: &cancellableBag)
         settings.$tileNumberFontSize.sink { [weak self] value in
-            self?.forEachTileNumberLabel { (label, tile) in
-                label.fontSize = tile.size.height * CGFloat(value)
+            self?.forEachTile { (board, tile) in
+                tile.label?.fontSize = tile.size.height * CGFloat(value)
             }
         }.store(in: &cancellableBag)
     }
@@ -300,24 +389,24 @@ class SliderScene: SKScene, ObservableObject {
     private func impactOccurred() {
         if settings.enableHaptics {
             if impactFeedback == nil {
-                impactFeedback = UIImpactFeedbackGenerator.init(style: .medium)
+                impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             }
             impactFeedback!.impactOccurred(intensity: 0.3)
         }
     }
     
     private func makeDebugText() {
-        let size = CGSize.init(width: frame.width, height: frame.height * 0.03)
+        let size = CGSize(width: frame.width, height: frame.height * 0.03)
         
-        let label = SKLabelNode.init(text: "Debug\nText")
+        let label = SKLabelNode(text: "Debug\nText")
         label.fontSize = size.height * 0.75
         label.horizontalAlignmentMode = .left
         label.verticalAlignmentMode = .center
         label.fontColor = .black
-        label.position = CGPoint.init(x: size.width * -0.45, y: 0)
+        label.position = CGPoint(x: size.width * -0.45, y: 0)
         
-        let parent = SKSpriteNode.init(color: UIColor.init(red: 1, green: 1, blue: 1, alpha: 0.5), size: size)
-        parent.position = CGPoint.init(x: 0, y: frame.minY + size.height)
+        let parent = SKSpriteNode(color: UIColor(red: 1, green: 1, blue: 1, alpha: 0.5), size: size)
+        parent.position = CGPoint(x: 0, y: frame.minY + size.height)
         parent.zPosition = 1000
         
         parent.addChild(label)
@@ -327,124 +416,99 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     private func setup() {
-        setup(texture: SKTexture.init(imageNamed: "sample"), columns: 4, rows: 3)
+        setupBoard(texture: SKTexture(imageNamed: "sample"), columns: 4, rows: 3)
     }
     
-    private func cleanup() {
-        setup(texture: nil, columns: 0, rows: 0)
+    private func cleanupBoard() {
+        // Fade out and remove old stuff
+        enumerateChildNodes(withName: nodeNameBoard) { (board, stop) in
+            board.run(.fadeOut(withDuration: self.settings.speedFactor * 0.25)) {
+                board.removeFromParent()
+            }
+        }
+        currentBoard = nil
     }
     
-    private func setup(texture: SKTexture?, columns newColumns: Int, rows newRows: Int) {
+    private func setupBoard(texture: SKTexture?, columns: Int, rows: Int) {
         stage = .transition
         
-        let speedFactor = settings.speedFactor
+        cleanupBoard()
         
-        // Fade out and remove old stuff
-        enumerateChildNodes(withName: nodeNameTile) { (tile, stop) in
-            tile.run(.fadeOut(withDuration: speedFactor * 0.25)) {
-                tile.removeFromParent()
-            }
-        }
-
-        // Reset board state
-        columns = newColumns
-        rows = newColumns
-        emptyColumn = columns - 1
-        emptyRow = rows - 1
-        tiles.removeAll()
-        tilesContentAspect = texture?.size().aspect ?? 0
+        let rect = frame.middleWithAspect(texture?.size().aspect ?? 1)
+        let board = createBoard(texture: texture, columns: columns, rows: rows, rect: rect)
+        shuffle(board)
+        addChild(board)
+        revealTiles(board, delay: 0.25, stagger: 1.0, duration: 0.5)
         
-        // Build nodes for each tile (initially hidden)
-        for c in 0..<columns {
-            tiles.append([])
-            for r in 0..<rows {
-                let tile = createTile(texture: texture, column: c, row: r)
-                tile.alpha = 0
-                addChild(tile)
-                tiles[c].append(tile)
-            }
-        }
-        
-        shuffle()
-
-        // Reveal tiles
-        for col in tiles {
-            for tile in col {
-                if tile.currentColumn != emptyColumn || tile.currentRow != emptyRow {
-                    let tilePercentile = CGFloat(tile.originalColumn + tile.originalRow * columns) / CGFloat(columns * rows - 1)
-                    tile.setScale(0.9)
-                    tile.run(.sequence([
-                        .wait(forDuration: speedFactor * (0.25 + tilePercentile)),
-                        .group([
-                            .scale(to: 1, duration: speedFactor * 0.5),
-                            .fadeIn(withDuration: speedFactor * 0.5),
-                        ]),
-                        ]))
-                }
-            }
-        }
-        
-        run(.wait(forDuration: speedFactor * 1.5)) { [weak self] () in
+        run(.wait(forDuration: settings.speedFactor * 1.5)) { [weak self] () in
             self?.stage = .playing
         }
     }
     
-    private func solved() {
+    private func solved(_ board: BoardNode) {
         stage = .transition
 
         let duration = settings.speedFactor * 0.25
         
-        // For each tile, remove the chrome to reveal the image
-        for col in tiles {
-            for tile in col {
-                tile.label?.run(.fadeOut(withDuration: duration))
-                tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
-            }
+        // For each tile, remove the chrome to reveal the image, and make sure
+        // that it's full visible (especially for the "empty" tile)
+        for tile in board.tiles {
+            tile.label?.run(.fadeOut(withDuration: duration))
+            tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
+            tile.run(.fadeIn(withDuration: duration))
         }
 
-        // Show the empty tile to complete the puzzle
-        let emptyTile = tiles[emptyColumn][emptyRow]
-        emptyTile.run(.sequence([
-                SKAction.fadeAlpha(to: 1, duration: duration),
-                SKAction.wait(forDuration: 1.0 /* intentionally without speedFactor multiplier */),
-            ])) { [weak self] () in
-                self?.stage = .solved
-            }
+        // Pause for a second (intentionally without speedFactor multiplier) before
+        // officially moving from transition to solved which will allow input
+        run(.wait(forDuration: 1.0)) { [weak self] () in
+            self?.stage = .solved
+        }
     }
     
-    // Get the rectangle for the given grid coordinate
-    private func getTileRect(column: Int, row: Int) -> CGRect {
-        var bounds: CGRect = frame
-        if tilesContentAspect > 0 {
-            bounds = bounds.middleWithAspect(tilesContentAspect)
+    // MARK: BoardNode methods
+    
+    private func createBoard(texture: SKTexture?, columns: Int, rows: Int, rect: CGRect) -> BoardNode {
+        let model = SliderBoard(columns: columns,
+                                row: rows,
+                                emptyTileOrdinal: columns * rows - 1)
+        
+        let board = BoardNode(color: .clear, size: rect.size)
+        board.name = nodeNameBoard
+        board.position = rect.mid
+        board.model = model
+
+        // Build nodes for each tile (initially hidden)
+        board.tiles = []
+        for ordinal in 0..<model.ordinalPositions.count {
+            let tile = createTile(board, texture: texture, ordinal: ordinal)
+            board.addChild(tile)
+            board.tiles.append(tile)
         }
-        let tileWidth = bounds.width / CGFloat(columns)
-        let tileHeight = bounds.height / CGFloat(rows)
-        let x = bounds.minX + CGFloat(column) * tileWidth
-        let y = bounds.maxY - CGFloat(row + 1) * tileHeight
-        return CGRect.init(x: x, y: y, width: tileWidth, height: tileHeight)
+
+        return board
     }
     
     // Builds a tile that is populated but not attached to anything
-    private func createTile(texture: SKTexture?, column: Int, row: Int) -> Tile {
-        let rect = getTileRect(column: column, row: row)
-        let tileNumber = column + row * columns
+    private func createTile(_ board: BoardNode, texture: SKTexture?, ordinal: Int) -> TileNode {
+        let coord = board.model.indexToCoordinate(ordinal)
+        let rect = computeTileRect(board, ordinal: ordinal)
         
-        var imageNode: SKSpriteNode
+        var contentNode: SKSpriteNode
         if let tex = texture {
-            let subTexRect = CGRect.init(x: CGFloat(column) / CGFloat(columns),
-                                         y: CGFloat(rows - row - 1) / CGFloat(rows),
-                                         width: 1.0 / CGFloat(columns),
-                                         height: 1.0 / CGFloat(rows))
-            let subTex = SKTexture.init(rect: subTexRect, in: tex)
-            imageNode = SKSpriteNode.init(texture: subTex, size: rect.size)
+            let subTexRect = CGRect(
+                x: CGFloat(coord.column) / CGFloat(board.model.columns),
+                y: CGFloat(board.model.rows - coord.row - 1) / CGFloat(board.model.rows),
+                width: 1.0 / CGFloat(board.model.columns),
+                height: 1.0 / CGFloat(board.model.rows))
+            let subTex = SKTexture(rect: subTexRect, in: tex)
+            contentNode = SKSpriteNode(texture: subTex, size: rect.size)
         } else {
-            let color = tileNumber % 2 == 0 ? SKColor.black : SKColor.red
-            imageNode = SKSpriteNode.init(color: color, size: rect.size)
+            let color = ordinal % 2 == 0 ? SKColor.black : SKColor.red
+            contentNode = SKSpriteNode(color: color, size: rect.size)
         }
-        imageNode.name = nodeNameTileImage
+        contentNode.name = nodeNameTileContent
 
-        let labelNode = SKLabelNode.init(text: String(format: "%d", 1 + tileNumber))
+        let labelNode = SKLabelNode(text: String(format: "%d", 1 + ordinal))
         labelNode.name = nodeNameLabel
         labelNode.fontColor = UIColor(settings.tileNumberColor)
         labelNode.fontName = settings.tileNumberFontFace
@@ -461,41 +525,74 @@ class SliderScene: SKScene, ObservableObject {
         //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
         cropNode.maskNode = SKSpriteNode(color: .black, size: cropRect.size)
         
-        let tileNode = Tile.init(color: .init(white: 0, alpha: 0), size: rect.size)
+        let tileNode = TileNode(color: .clear, size: rect.size)
         tileNode.name = nodeNameTile
-        tileNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        tileNode.position = CGPoint(x: rect.midX, y: rect.midY)
-        tileNode.originalColumn = column
-        tileNode.originalRow = row
-        tileNode.currentColumn = column
-        tileNode.currentRow = row
+        tileNode.alpha = 0
+        tileNode.position = rect.mid
+        tileNode.ordinal = ordinal
         tileNode.label = labelNode
         tileNode.crop = cropNode
 
-        cropNode.addChild(imageNode)
+        cropNode.addChild(contentNode)
         cropNode.addChild(labelNode)
         tileNode.addChild(cropNode)
         
         return tileNode
     }
     
-    private func forEachTileNumberLabel(_ closure: (SKLabelNode, SKSpriteNode) -> Void) {
-        for child in children {
-            if let tile = child as? Tile {
-                if let label = tile.label {
-                    closure(label, tile)
-                }
+    // Reveal tiles in the board by waiting for the specified delay
+    // and then starting each tile's entrance during the stagger timeframe
+    // which each last duration.
+    private func revealTiles(_ board: BoardNode, delay: TimeInterval, stagger: TimeInterval, duration: TimeInterval) {
+        for tile in board.tiles {
+            if tile.ordinal != board.model.emptyOrdinal {
+                let tilePercentile = CGFloat(tile.ordinal) / CGFloat(board.model.ordinalPositions.count - 1)
+                tile.setScale(0.9)
+                tile.run(.sequence([
+                    .wait(forDuration: settings.speedFactor * (delay + stagger * tilePercentile)),
+                    .group([
+                        .scale(to: 1, duration: settings.speedFactor * duration),
+                        .fadeIn(withDuration: settings.speedFactor * duration),
+                    ]),
+                    ]))
             }
         }
     }
     
+    // Get the rectangle for the given grid coordinate
+    private func computeTileRect(_ board: BoardNode, ordinal: Int) -> CGRect {
+        let coord = board.model.getOrdinalCoordinate(ordinal)
+        let size = board.size
+        let bounds = CGRect(x: size.width * -0.5, y: size.height * -0.5, width: size.width, height: size.height)
+        let tileWidth = bounds.width / CGFloat(board.model.columns)
+        let tileHeight = bounds.height / CGFloat(board.model.rows)
+        let x = bounds.minX + CGFloat(coord.column) * tileWidth
+        let y = bounds.maxY - CGFloat(coord.row + 1) * tileHeight
+        return CGRect(x: x, y: y, width: tileWidth, height: tileHeight)
+    }
+    
+    // Update the position of the node to match its model
+    private func updateTilePosition(_ board: BoardNode, ordinal: Int) {
+        let tile = board.tiles[ordinal]
+        let newPos = computeTileRect(board, ordinal: ordinal).mid
+
+        if !isPaused {
+            // Animate the tile position
+            tile.run(.move(to: newPos, duration: settings.speedFactor * 0.125)) { [weak self] () in
+                self?.impactOccurred()
+            }
+        } else {
+            tile.position = newPos
+        }
+    }
+    
     // Shuffle the board
-    private func shuffle() {
-        shuffle(10 * columns * rows)
+    private func shuffle(_ board: BoardNode) {
+        shuffle(board, count: 10 * board.model.columns * board.model.rows)
     }
     
     // Shuffles the board by making count moves
-    private func shuffle(_ count: Int) {
+    private func shuffle(_ board: BoardNode, count: Int) {
         let oldIsPaused = isPaused
         isPaused = true
         defer { isPaused = oldIsPaused }
@@ -512,10 +609,10 @@ class SliderScene: SKScene, ObservableObject {
             // Values were chosen such that this means not a difference of 2
             if abs(direction - lastDirection) != 2 {
                 switch direction {
-                case 0: slid = slideUp()
-                case 1: slid = slideRight()
-                case 2: slid = slideDown()
-                case 3: slid = slideLeft()
+                case 0: slid = slideUp(board)
+                case 1: slid = slideRight(board)
+                case 2: slid = slideDown(board)
+                case 3: slid = slideLeft(board)
                 default: assert(false, "unexpected direction")
                 }
             }
@@ -527,38 +624,75 @@ class SliderScene: SKScene, ObservableObject {
         }
     }
     
+    // Move one tile left into empty slot if possible
+    private func slideLeft(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 1, verticalOffset: 0)
+    }
+    
+    // Move one tile right into empty slot if possible
+    private func slideRight(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: -1, verticalOffset: 0)
+    }
+    
+    // Move one tile up into empty slot if possible
+    private func slideUp(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: 1)
+    }
+    
+    // Move one tile down into empty slot if possible
+    private func slideDown(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: -1)
+    }
+
+    // Move the tile at the specified position offset from the empty tile into
+    // the empty slot by swapping the two's tile position (with animations)
+    private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int) -> Bool {
+        if let ordinal = board.model.swapWithEmpty(horizontalOffset: horizontalOffset, verticalOffset: verticalOffset) {
+            updateTilePosition(board, ordinal: ordinal)
+            if board.model.isSolved() {
+                solved(board)
+            }
+            return true
+        } else {
+            return false
+        }
+    }
+    
     // Moves the specified tile if possible
-    private func trySlideTile(_ tile: Tile) -> Bool {
-        if tile.currentColumn == emptyColumn {
-            let verticalMoves = tile.currentRow - emptyRow
+    private func trySlideTile(_ tile: TileNode) -> Bool {
+        let m = tile.board.model
+        let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
+        let tileCoord = m.getOrdinalCoordinate(tile.ordinal)
+        if tileCoord.column == emptyCoord.column {
+            let verticalMoves = tileCoord.row - emptyCoord.row
             if verticalMoves < 0 {
-                // Shift down emptyRow - currentRow times
+                // Shift down emptyCoord.row - currentRow times
                 for _ in verticalMoves...(-1) {
-                    let slid = slideDown()
+                    let slid = slideDown(tile.board)
                     assert(slid, "Couldn't slide down")
                 }
                 return true
             } else if verticalMoves > 0 {
-                // Shift up currentRow - emptyRow times
+                // Shift up currentRow - emptyCoord.row times
                 for _ in 1...verticalMoves {
-                    let slid = slideUp()
+                    let slid = slideUp(tile.board)
                     assert(slid, "Couldn't slide up")
                 }
                 return true
             }
-        } else if tile.currentRow == emptyRow {
-            let horizontalMoves = tile.currentColumn - emptyColumn
+        } else if tileCoord.row == emptyCoord.row {
+            let horizontalMoves = tileCoord.column - emptyCoord.column
             if horizontalMoves < 0 {
-                // Shift right emptyColumn - currentColumn times
+                // Shift right emptyCoord.column - currentColumn times
                 for _ in horizontalMoves...(-1) {
-                    let slid = slideRight()
+                    let slid = slideRight(tile.board)
                     assert(slid, "Couldn't slide right")
                 }
                 return true
             } else if horizontalMoves > 0 {
-                // Shift left currentColumn - emptyColumn times
+                // Shift left currentColumn - emptyCoord.column times
                 for _ in 1...horizontalMoves {
-                    let slid = slideLeft()
+                    let slid = slideLeft(tile.board)
                     assert(slid, "Couldn't slide left")
                 }
                 return true
@@ -568,83 +702,16 @@ class SliderScene: SKScene, ObservableObject {
         // Can't move
         return false
     }
-    
-    // Move one tile left into empty slot if possible
-    private func slideLeft() -> Bool {
-        return slideToEmpty(column: emptyColumn + 1, row: emptyRow)
-    }
-    
-    // Move one tile right into empty slot if possible
-    private func slideRight() -> Bool {
-        return slideToEmpty(column: emptyColumn - 1, row: emptyRow)
-    }
-    
-    // Move one tile up into empty slot if possible
-    private func slideUp() -> Bool {
-        return slideToEmpty(column: emptyColumn, row: emptyRow + 1)
-    }
-    
-    // Move one tile down into empty slot if possible
-    private func slideDown() -> Bool {
-        return slideToEmpty(column: emptyColumn, row: emptyRow - 1)
-    }
 
-    // Move the specified tile into empty slot
-    private func slideToEmpty(column: Int, row: Int) -> Bool {
-        if column < 0 || columns <= column || row < 0 || rows <= row {
-            // Can't move in this direction
-            return false
-        }
-        
-        let tile = tiles[column][row]
-        let emptyTile = tiles[emptyColumn][emptyRow]
-        // Move the specified tile into the empty area
-        setTilePosition(tile: tile, column: emptyColumn, row: emptyRow)
-        // And the empty tile gets swapped into the other location
-        setTilePosition(tile: emptyTile, column: column, row: row)
-        emptyColumn = column
-        emptyRow = row
-        
-        // Figure out the new tile position (for the visible one)
-        let newRect = getTileRect(column: tile.currentColumn, row: tile.currentRow)
-        let newX = newRect.midX
-        let newY = newRect.midY
-
-        if !isPaused {
-            // Animate the tile position
-            tile.run(.move(to: CGPoint(x: newX, y: newY), duration: settings.speedFactor * 0.125)) { [weak self] () in
-                self?.impactOccurred()
-            }
-        } else {
-            tile.position = CGPoint(x: newX, y: newY)
-        }
-        
-        if isSolved() {
-            solved()
-        }
-        
-        return true
-    }
-    
-    private func setTilePosition(tile: Tile, column: Int, row: Int) {
-        tile.currentColumn = column
-        tile.currentRow = row
-        tiles[column][row] = tile
-    }
-    
-    // Returns true iff the puzzle has been solved
-    private func isSolved() -> Bool {
-        for c in 0..<columns {
-            for r in 0..<rows {
-                let tile = tiles[c][r]
-                assert(tile.currentColumn == c)
-                assert(tile.currentRow == r)
-                if tile.originalColumn != c || tile.originalRow != r {
-                    return false
+    // Enumerate all the TileNode in the visual tree
+    private func forEachTile(_ closure: (BoardNode, TileNode) -> Void) {
+        for child in children {
+            if let board = child as? BoardNode {
+                for tile in board.tiles {
+                    closure(board, tile)
                 }
             }
         }
-        
-        return true
     }
+    
 }
