@@ -9,24 +9,20 @@
 import SwiftUI
 import SpriteKit
 
-class GameSceneStore : ObservableObject {
-    var scene = SliderScene()
-    
-    init() {
-        scene.backgroundColor = .black
-    }
-}
-
 struct MainView: View {
     @State private var settingsPresented: Bool = false
-    @StateObject private var gameSceneStore = GameSceneStore()
+    @StateObject private var settings = SliderSettings()
+    @StateObject private var game = SliderScene()
     
     var body: some View {
         ZStack {
             // Main
-            SpriteView(scene: gameSceneStore.scene)
+            SpriteView(scene: game)
                 .ignoresSafeArea()
                 .blur(radius: settingsPresented ? 2 : 0, opaque: true)
+                .onAppear {
+                    game.settings = settings
+                }
             // HUD
             VStack {
                 HStack {
@@ -41,16 +37,13 @@ struct MainView: View {
                             .padding(4)
                             .background(Circle()
                                 .foregroundColor(.white.opacity(0.1)))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.3))
                     }
                         .buttonStyle(.plain)
                         .padding(16)
                 }
-                    .frame(maxWidth: .infinity)
                 Spacer()
-                    .frame(maxHeight: .infinity)
             }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
             // Settings
             if settingsPresented {
@@ -76,18 +69,18 @@ struct MainView: View {
                                     .foregroundColor(.black)
                             }
                         }
-                        Toggle(isOn: $gameSceneStore.scene.settings.enableHaptics) {
+                        Toggle(isOn: $settings.enableHaptics) {
                             Text("Enable Haptics")
                         }
-                        ColorPicker("Number color", selection: $gameSceneStore.scene.settings.tileNumberColor)
-                        Slider(value: $gameSceneStore.scene.settings.tileNumberFontSize, in: 0...1) {
+                        ColorPicker("Number color", selection: $settings.tileNumberColor)
+                        Slider(value: $settings.tileNumberFontSize, in: 0...1) {
                             Text("Number size")
                         } minimumValueLabel: {
                             Text("Small")
                         } maximumValueLabel: {
                             Text("Large")
                         }
-                        Slider(value: $gameSceneStore.scene.settings.speedFactor, in: 0...3) {
+                        Slider(value: $settings.speedFactor, in: 0...3) {
                             Text("Speed")
                         } minimumValueLabel: {
                             Text("Fast")
