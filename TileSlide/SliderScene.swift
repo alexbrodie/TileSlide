@@ -115,6 +115,7 @@ class SliderScene: SKScene, ObservableObject {
         var currentRow: Int = -1
         // The label containing the tile number associate with this
         var label: SKLabelNode?
+        // The crop node used to implement margins
         var crop: SKCropNode?
     }
     
@@ -130,10 +131,10 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     // Names for different categories of nodes, useful for childNode and enumerateChildNodes
-    let nodeNameLabel = "labl"
-    let nodeNameTileImage = "timg"
-    let nodeNameTile = "tile"
-    let nodeNameCrop = "crop"
+    private let nodeNameLabel = "labl"
+    private let nodeNameTileImage = "timg"
+    private let nodeNameTile = "tile"
+    private let nodeNameCrop = "crop"
 
     // # UI State...
     // What phase of gameplay we are in
@@ -253,6 +254,8 @@ class SliderScene: SKScene, ObservableObject {
         }
     }
     
+    // Called when the settings property is set so that we can
+    // reset sinks for our manual bindings
     private func onSettingsReplaced() {
         // Clear old sinks
         for o in cancellableBag {
@@ -299,11 +302,7 @@ class SliderScene: SKScene, ObservableObject {
             if self.impactFeedback == nil {
                 self.impactFeedback = UIImpactFeedbackGenerator.init(style: .medium)
             }
-            if #available(iOS 13.0, *) {
-                self.impactFeedback!.impactOccurred(intensity: 0.3)
-            } else {
-                self.impactFeedback!.impactOccurred()
-            }
+            self.impactFeedback!.impactOccurred(intensity: 0.3)
         }
     }
     
@@ -456,6 +455,7 @@ class SliderScene: SKScene, ObservableObject {
         
         let margin = min(rect.width, rect.height) * -0.5 * self.settings.tileMarginSize
         let cropRect = rect.inflate(margin)
+        
         let cropNode = SKCropNode()
         cropNode.name = nodeNameCrop
         //crop.position = CGPoint(x: cropRect.midX, y: cropRect.midY)
@@ -621,9 +621,6 @@ class SliderScene: SKScene, ObservableObject {
         
         if isSolved() {
             self.solved()
-        } else {
-            // Not solved yet
-            // TODO: add haptic feedback?
         }
         
         return true
