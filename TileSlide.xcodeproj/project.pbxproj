@@ -19,6 +19,7 @@
 		DBAA31DB27BAEE0D00CA9011 /* extension_UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */; };
 		DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */; };
 		DBAA31E027BB9E9200CA9011 /* version.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DF27BB9E9200CA9011 /* version.swift */; };
+		DBAA31E227BBAE3C00CA9011 /* extension_String.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31E127BBAE3C00CA9011 /* extension_String.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_UIImage.swift; sourceTree = "<group>"; };
 		DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderBoard.swift; sourceTree = "<group>"; };
 		DBAA31DF27BB9E9200CA9011 /* version.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = version.swift; sourceTree = "<group>"; };
+		DBAA31E127BBAE3C00CA9011 /* extension_String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_String.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 				DB94E71727B7831E00161A75 /* CustomDialog.swift */,
 				DBAA31D627BAED7A00CA9011 /* extension_CGRect.swift */,
 				DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */,
+				DBAA31E127BBAE3C00CA9011 /* extension_String.swift */,
 				DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */,
 				DB663D4B226F9DFC0058AFFB /* Info.plist */,
 				DB70DA7E27B4D53A0000ACC2 /* MainView.swift */,
@@ -179,6 +182,7 @@
 				DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */,
 				DBAA31D727BAED7A00CA9011 /* extension_CGRect.swift in Sources */,
 				DBAA31E027BB9E9200CA9011 /* version.swift in Sources */,
+				DBAA31E227BBAE3C00CA9011 /* extension_String.swift in Sources */,
 				DBAA31D927BAEDC400CA9011 /* extension_CGSize.swift in Sources */,
 				DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */,
 				DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */,
