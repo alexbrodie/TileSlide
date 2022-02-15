@@ -18,6 +18,7 @@
 		DBAA31D927BAEDC400CA9011 /* extension_CGSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */; };
 		DBAA31DB27BAEE0D00CA9011 /* extension_UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */; };
 		DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */; };
+		DBAA31E027BB9E9200CA9011 /* version.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DF27BB9E9200CA9011 /* version.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_CGSize.swift; sourceTree = "<group>"; };
 		DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_UIImage.swift; sourceTree = "<group>"; };
 		DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderBoard.swift; sourceTree = "<group>"; };
+		DBAA31DF27BB9E9200CA9011 /* version.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = version.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,7 @@
 				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
 				DB70DA8027B61A940000ACC2 /* SliderSettings.swift */,
 				DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */,
+				DBAA31DF27BB9E9200CA9011 /* version.swift */,
 			);
 			path = TileSlide;
 			sourceTree = "<group>";
@@ -89,6 +92,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = DB663D64226F9DFC0058AFFB /* Build configuration list for PBXNativeTarget "TileSlide" */;
 			buildPhases = (
+				DBAA31DE27BB922D00CA9011 /* ShellScript */,
 				DB663D32226F9DFA0058AFFB /* Sources */,
 				DB663D33226F9DFA0058AFFB /* Frameworks */,
 				DB663D34226F9DFA0058AFFB /* Resources */,
@@ -147,6 +151,26 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		DBAA31DE27BB922D00CA9011 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "outfile=TileSlide/version.swift\ncommit=$(git rev-parse --verify HEAD | cut -c 1-7)\ncurdate=$(date +\"%y%m%d\")\n\nfilesource=\"//\n// This file was auto generated in the build process.\n// Do not modify or commit it directly. See the project's\n// Build Phases to update.\n//\n\nimport Foundation\n\nlet app_commit = \\\"$commit\\\"\nlet app_build_date = \\\"$curdate\\\"\n\"\n\necho \"$filesource\" > $outfile\ntouch $outfile\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		DB663D32226F9DFA0058AFFB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -154,6 +178,7 @@
 			files = (
 				DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */,
 				DBAA31D727BAED7A00CA9011 /* extension_CGRect.swift in Sources */,
+				DBAA31E027BB9E9200CA9011 /* version.swift in Sources */,
 				DBAA31D927BAEDC400CA9011 /* extension_CGSize.swift in Sources */,
 				DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */,
 				DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */,
