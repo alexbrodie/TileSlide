@@ -87,6 +87,10 @@ struct MainView: View {
                         } maximumValueLabel: {
                             Text("Slow")
                         }
+                        //?["CFBundleShortVersionString"]
+                        Text("Doguillo v\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")\n\(app_build_date).\(app_commit)")
+                            .multilineTextAlignment(.center)
+                            .font(.footnote)
                     }
                         .background(RoundedRectangle(cornerRadius: 8)
                             .foregroundColor(.white)
