@@ -40,13 +40,6 @@ class SliderScene: SKScene, ObservableObject {
         }
     }
     
-    private enum Stage {
-        case uninitialized
-        case transition
-        case playing
-        case solved
-    }
-    
     @ObservedObject var settings = SliderSettings() {
         didSet { onSettingsReplaced() }
     }
@@ -113,20 +106,20 @@ class SliderScene: SKScene, ObservableObject {
                     if abs(pitch) > abs(roll) {
                         if pitch < -tiltThreshold {
                             // Negative pitch == tilt forward
-                            slid = slideUp(board)
+                            slid = slideUp(board, playFeedback: true)
                         } else if pitch > tiltThreshold {
                             // Positive pitch == tilt backward
-                            slid = slideDown(board)
+                            slid = slideDown(board, playFeedback: true)
                         }
                     }
                     
                     if !slid {
                         if roll < -tiltThreshold {
                             // Negative roll == tilt left
-                            slid = slideLeft(board)
+                            slid = slideLeft(board, playFeedback: true)
                         } else if roll > tiltThreshold {
                             // Positive roll == tilt right
-                            slid = slideRight(board)
+                            slid = slideRight(board, playFeedback: true)
                         }
                     }
                     
@@ -243,7 +236,10 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     private func setup() {
-        setupBoard(texture: SKTexture(imageNamed: "sample"), columns: 4, rows: 3)
+        setupNewBoard(columns: 4, 
+                      rows: 3, 
+                      emptyOrdinal: 8, 
+                      texture: SKTexture(imageNamed: "sample"))
     }
     
     // MARK: BoardNode methods
@@ -258,19 +254,17 @@ class SliderScene: SKScene, ObservableObject {
         currentBoard = nil
     }
     
-    private func setupBoard(texture: SKTexture?, columns: Int, rows: Int) {
+    private func setupNewBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?) {
         cleanupBoard()
         let rect = frame.middleWithAspect(texture?.size().aspect ?? 1)
-        let board = createBoard(columns: columns, rows: rows, texture: texture, rect: rect)
+        let board = createBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal, texture: texture, rect: rect)
         shuffle(board)
         addChild(board)
         revealTiles(board)
     }
     
-    private func createBoard(columns: Int, rows: Int, texture: SKTexture?, rect: CGRect) -> BoardNode {
-        let model = SliderBoard(columns: columns,
-                                row: rows,
-                                emptyTileOrdinal: columns * rows - 1)
+    private func createBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?, rect: CGRect) -> BoardNode {
+        let model = SliderBoard(columns: columns, row: rows, emptyOrdinal: emptyOrdinal)
         
         let board = BoardNode(color: .clear, size: rect.size)
         board.name = nodeNameBoard
@@ -288,10 +282,16 @@ class SliderScene: SKScene, ObservableObject {
         return board
     }
     
-    private func createSubBoard(columns: Int, rows: Int, tile: TileNode) -> BoardNode {
+    private func createSubBoard(tile: TileNode) -> BoardNode {
         // Create board with same size, position and texture as the tile's content sprite
         let node = tile.content!
-        let board = createBoard(columns: columns, rows: rows, texture: node.texture, rect: node.frame)
+        let model = tile.board.model
+        let board = createBoard(
+            columns: model.columns,
+            rows: model.rows,
+            emptyOrdinal: tile.ordinal,
+            texture: node.texture,
+            rect: node.frame)
         // If the content is already being shown then we need to show the new board
         // before we remove the old content. Otherwise, we'll rely on
         if !node.isHidden {
@@ -327,8 +327,14 @@ class SliderScene: SKScene, ObservableObject {
             contentNode = SKSpriteNode(color: color, size: rect.size)
         }
         contentNode.name = nodeNameTileContent
+        
+        var labelText: String?
+        //if board.model.columns == 3 && board.model.rows == 3 {
+        //    let blackArrows = "⬉⬆︎⬈⬅︎◎➡︎⬋⬇︎⬊"
+        //    labelText = blackArrows.substring(ordinal)
+        //}
 
-        let labelNode = SKLabelNode(text: String(format: "%d", 1 + ordinal))
+        let labelNode = SKLabelNode(text: labelText ?? String(format: "%d", 1 + ordinal))
         labelNode.name = nodeNameLabel
         labelNode.fontColor = UIColor(settings.tileNumberColor)
         labelNode.fontName = settings.tileNumberFontFace
@@ -400,11 +406,24 @@ class SliderScene: SKScene, ObservableObject {
 
         board.emptyTile.run(.fadeIn(withDuration: duration))
 
-        // See if an ancestor is a tile
-        if let tile = tileAncestorOf(board) {
+        // See if an ancestor is a tile - if so this is sub-board, else topmost
+        if let tile: TileNode = board.firstAncestorOfType() {
             if !tile.board.model.isSolved {
                 tile.label?.run(.fadeIn(withDuration: duration))
             }
+        }
+
+        // Determine if all other boards are solved as well
+        let rootBoard: BoardNode = board.lastAncestorOfType()!
+        let isFullySolved = forEachBoardAndTile(board: rootBoard) { board in
+            return board.model.isSolved
+        } onTile: { board, tile in
+            return true
+        }
+
+        if isFullySolved {
+            // This is a temp success screen
+            backgroundColor = .white
         }
     }
     
@@ -426,7 +445,7 @@ class SliderScene: SKScene, ObservableObject {
         board.emptyTile.run(.fadeOut(withDuration: duration))
 
         // See if an ancestor is a tile
-        if let tile = tileAncestorOf(board) {
+        if let tile: TileNode = board.firstAncestorOfType() {
             tile.label?.run(.fadeOut(withDuration: duration))
         }
     }
@@ -487,10 +506,10 @@ class SliderScene: SKScene, ObservableObject {
             // Values were chosen such that this means not a difference of 2
             if abs(direction - lastDirection) != 2 {
                 switch direction {
-                case 0: slid = slideUp(board)
-                case 1: slid = slideRight(board)
-                case 2: slid = slideDown(board)
-                case 3: slid = slideLeft(board)
+                case 0: slid = slideUp(board, playFeedback: false)
+                case 1: slid = slideRight(board, playFeedback: false)
+                case 2: slid = slideDown(board, playFeedback: false)
+                case 3: slid = slideLeft(board, playFeedback: false)
                 default: assert(false, "unexpected direction")
                 }
             }
@@ -503,29 +522,29 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     // Move one tile left into empty slot if possible
-    private func slideLeft(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 1, verticalOffset: 0)
+    private func slideLeft(_ board: BoardNode, playFeedback: Bool) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 1, verticalOffset: 0, playFeedback: playFeedback)
     }
     
     // Move one tile right into empty slot if possible
-    private func slideRight(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: -1, verticalOffset: 0)
+    private func slideRight(_ board: BoardNode, playFeedback: Bool) -> Bool {
+        return slideToEmpty(board, horizontalOffset: -1, verticalOffset: 0, playFeedback: playFeedback)
     }
     
     // Move one tile up into empty slot if possible
-    private func slideUp(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: 1)
+    private func slideUp(_ board: BoardNode, playFeedback: Bool) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: 1, playFeedback: playFeedback)
     }
     
     // Move one tile down into empty slot if possible
-    private func slideDown(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: -1)
+    private func slideDown(_ board: BoardNode, playFeedback: Bool) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: -1, playFeedback: playFeedback)
     }
 
     // Move the tile at the specified position offset from the empty tile into
     // the empty slot by swapping the two's tile position (with animations).
     // This is the base operation for any tile movement.
-    private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int) -> Bool {
+    private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int, playFeedback: Bool) -> Bool {
         let wasSolved = board.model.isSolved
         if let ordinal = board.model.swapWithEmpty(horizontalOffset: horizontalOffset, verticalOffset: verticalOffset) {
             updateTilePosition(board, ordinal: ordinal)
@@ -542,6 +561,7 @@ class SliderScene: SKScene, ObservableObject {
     
     // Moves the specified tile if possible
     private func trySlideTile(_ tile: TileNode) -> Bool {
+        var isFirstSlide = true
         let m = tile.board.model
         guard !m.isSolved else { return false }
         let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
@@ -551,15 +571,17 @@ class SliderScene: SKScene, ObservableObject {
             if verticalMoves < 0 {
                 // Shift down emptyCoord.row - currentRow times
                 for _ in verticalMoves...(-1) {
-                    let slid = slideDown(tile.board)
+                    let slid = slideDown(tile.board, playFeedback: isFirstSlide)
                     assert(slid, "Couldn't slide down")
+                    isFirstSlide = false
                 }
                 return true
             } else if verticalMoves > 0 {
                 // Shift up currentRow - emptyCoord.row times
                 for _ in 1...verticalMoves {
-                    let slid = slideUp(tile.board)
+                    let slid = slideUp(tile.board, playFeedback: isFirstSlide)
                     assert(slid, "Couldn't slide up")
+                    isFirstSlide = false
                 }
                 return true
             }
@@ -568,15 +590,17 @@ class SliderScene: SKScene, ObservableObject {
             if horizontalMoves < 0 {
                 // Shift right emptyCoord.column - currentColumn times
                 for _ in horizontalMoves...(-1) {
-                    let slid = slideRight(tile.board)
+                    let slid = slideRight(tile.board, playFeedback: isFirstSlide)
                     assert(slid, "Couldn't slide right")
+                    isFirstSlide = false
                 }
                 return true
             } else if horizontalMoves > 0 {
                 // Shift left currentColumn - emptyCoord.column times
                 for _ in 1...horizontalMoves {
-                    let slid = slideLeft(tile.board)
+                    let slid = slideLeft(tile.board, playFeedback: isFirstSlide)
                     assert(slid, "Couldn't slide left")
+                    isFirstSlide = false
                 }
                 return true
             }
@@ -589,39 +613,44 @@ class SliderScene: SKScene, ObservableObject {
     private func subShuffleTile(_ tile: TileNode) {
         var subBoard = tile.content as? BoardNode
         if subBoard == nil {
-            subBoard = createSubBoard(columns: 3, rows: 3, tile: tile)
+            subBoard = createSubBoard(tile: tile)
         }
         shuffle(subBoard!, count: 3)
     }
     
     // MARK: Node Lookup
-
+    
     // Enumerate all the TileNode in the visual tree
-    private func forEachTile(closure: (BoardNode, TileNode) -> Void) {
+    private func forEachTile(_ onTile: (BoardNode, TileNode) -> Void) {
         for child in children {
-            forEachTile(board: child, closure: closure)
+            _ = forEachBoardAndTile(board: child) { board in
+                return true
+            } onTile: { board, tile in
+                onTile(board, tile)
+                return true
+            }
         }
     }
     
     // Enumerate all the TileNode in the visual tree under the provided board
-    private func forEachTile(board: SKNode, closure: (BoardNode, TileNode) -> Void) {
-        if let board = board as? BoardNode {
-            for tile in board.tiles {
-                closure(board, tile)
-                forEachTile(board: tile.content!, closure: closure)
+    // Callbacks should return true to continue the enumeration. This method
+    // evaluates to true if all the callbacks return true and the enumeration
+    // completes. If one callback returns false the enumeration is canceled
+    // and this method evalues to false
+    private func forEachBoardAndTile(board: SKNode,
+                                     onBoard: (BoardNode) -> Bool,
+                                     onTile: (BoardNode, TileNode) -> Bool) -> Bool {
+        guard let board = board as? BoardNode  else {
+            return true
+        }
+        guard onBoard(board) else {
+            return false
+        }
+        for tile in board.tiles {
+            guard onTile(board, tile) && forEachBoardAndTile(board: tile.content!, onBoard: onBoard, onTile: onTile) else {
+                return false
             }
         }
-    }
-    
-    // Returns the TileNode ancestor of the provided node if any
-    private func tileAncestorOf(_ node: SKNode) -> TileNode? {
-        var ancestor = node.parent
-        while ancestor != nil {
-            if let tile = ancestor as? TileNode {
-                return tile
-            }
-            ancestor = ancestor?.parent
-        }
-        return nil
+        return true
     }
 }
