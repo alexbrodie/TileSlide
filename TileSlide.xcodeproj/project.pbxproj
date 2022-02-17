@@ -19,6 +19,7 @@
 		DBAA31DB27BAEE0D00CA9011 /* extension_UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */; };
 		DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */; };
 		DBAA31E027BB9E9200CA9011 /* version.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DF27BB9E9200CA9011 /* version.swift */; };
+		DBDE9E8C27BE22A50032C4FC /* extension_SKNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBDE9E8B27BE22A50032C4FC /* extension_SKNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_UIImage.swift; sourceTree = "<group>"; };
 		DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderBoard.swift; sourceTree = "<group>"; };
 		DBAA31DF27BB9E9200CA9011 /* version.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = version.swift; sourceTree = "<group>"; };
+		DBDE9E8B27BE22A50032C4FC /* extension_SKNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_SKNode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 				DB94E71727B7831E00161A75 /* CustomDialog.swift */,
 				DBAA31D627BAED7A00CA9011 /* extension_CGRect.swift */,
 				DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */,
+				DBDE9E8B27BE22A50032C4FC /* extension_SKNode.swift */,
 				DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */,
 				DB663D4B226F9DFC0058AFFB /* Info.plist */,
 				DB70DA7E27B4D53A0000ACC2 /* MainView.swift */,
@@ -183,6 +186,7 @@
 				DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */,
 				DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */,
 				DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */,
+				DBDE9E8C27BE22A50032C4FC /* extension_SKNode.swift in Sources */,
 				DB70DA8127B61A940000ACC2 /* SliderSettings.swift in Sources */,
 				DB94E71827B7831E00161A75 /* CustomDialog.swift in Sources */,
 				DBAA31DB27BAEE0D00CA9011 /* extension_UIImage.swift in Sources */,

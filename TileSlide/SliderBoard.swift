@@ -40,10 +40,10 @@ class SliderBoard {
 
     public init(columns inColumns: Int,
                 row inRows: Int,
-                emptyTileOrdinal inEmptyTileOrdinal: Int) {
+                emptyOrdinal inEmptyOrdinal: Int) {
         columns = inColumns
         rows = inRows
-        emptyOrdinal = inEmptyTileOrdinal
+        emptyOrdinal = inEmptyOrdinal
         ordinalPositions = Array(0..<(inColumns * inRows))
     }
     
