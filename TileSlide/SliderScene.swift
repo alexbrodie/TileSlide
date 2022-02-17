@@ -237,7 +237,10 @@ class SliderScene: SKScene, ObservableObject {
     
     private func setup() {
         let name = String(format: "Doguillo-%d", Int.random(in: 1...19))
-        setupNewBoard(columns: 3, rows: 3, emptyOrdinal: 8, texture: SKTexture(imageNamed: name))
+        setupNewBoard(columns: 3, 
+                      rows: 3, 
+                      emptyOrdinal: 8, 
+                      texture: SKTexture(imageNamed: name))
     }
     
     // MARK: BoardNode methods
