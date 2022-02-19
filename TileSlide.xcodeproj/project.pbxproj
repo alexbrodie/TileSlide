@@ -63,11 +63,32 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		DB3F9B6B27C0AAE60033D640 /* UIControls */ = {
+			isa = PBXGroup;
+			children = (
+				DB94E71727B7831E00161A75 /* CustomDialog.swift */,
+			);
+			path = UIControls;
+			sourceTree = "<group>";
+		};
+		DB3F9B6C27C0AB4B0033D640 /* TileSlide */ = {
+			isa = PBXGroup;
+			children = (
+				DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */,
+				DBAA31DF27BB9E9200CA9011 /* version.swift */,
+				DB663D4B226F9DFC0058AFFB /* Info.plist */,
+			);
+			path = TileSlide;
+			sourceTree = "<group>";
+		};
 		DB663D2D226F9DFA0058AFFB = {
 			isa = PBXGroup;
 			children = (
+				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
+				DB3F9B6C27C0AB4B0033D640 /* TileSlide */,
+				DB3F9B6B27C0AAE60033D640 /* UIControls */,
 				DB3F9B6A27C0A95D0033D640 /* Extensions */,
-				DB663D38226F9DFA0058AFFB /* TileSlide */,
+				DB663D38226F9DFA0058AFFB /* Main */,
 				DB663D37226F9DFA0058AFFB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -80,20 +101,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		DB663D38226F9DFA0058AFFB /* TileSlide */ = {
+		DB663D38226F9DFA0058AFFB /* Main */ = {
 			isa = PBXGroup;
 			children = (
-				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
-				DB94E71727B7831E00161A75 /* CustomDialog.swift */,
-				DB663D4B226F9DFC0058AFFB /* Info.plist */,
 				DB70DA7E27B4D53A0000ACC2 /* MainView.swift */,
 				DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */,
 				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
 				DB70DA8027B61A940000ACC2 /* SliderSettings.swift */,
-				DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */,
-				DBAA31DF27BB9E9200CA9011 /* version.swift */,
 			);
-			path = TileSlide;
+			path = Main;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

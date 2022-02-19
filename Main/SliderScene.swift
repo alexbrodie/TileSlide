@@ -50,6 +50,8 @@ class SliderScene: SKScene, ObservableObject {
     private let nodeNameTileContent = "con"
     private let nodeNameTile = "til"
     private let nodeNameCrop = "crp"
+    
+    private let clickSound = SKAction.playSoundFileNamed(Bundle.main.path(forResource: "Click", ofType: "wav")!, waitForCompletion: false)
 
     // MARK: UI State
     // Last time that tilting the device slid a tile
@@ -106,20 +108,20 @@ class SliderScene: SKScene, ObservableObject {
                     if abs(pitch) > abs(roll) {
                         if pitch < -tiltThreshold {
                             // Negative pitch == tilt forward
-                            slid = slideUp(board, playFeedback: true)
+                            slid = slideUp(board)
                         } else if pitch > tiltThreshold {
                             // Positive pitch == tilt backward
-                            slid = slideDown(board, playFeedback: true)
+                            slid = slideDown(board)
                         }
                     }
                     
                     if !slid {
                         if roll < -tiltThreshold {
                             // Negative roll == tilt left
-                            slid = slideLeft(board, playFeedback: true)
+                            slid = slideLeft(board)
                         } else if roll > tiltThreshold {
                             // Positive roll == tilt right
-                            slid = slideRight(board, playFeedback: true)
+                            slid = slideRight(board)
                         }
                     }
                     
@@ -425,7 +427,27 @@ class SliderScene: SKScene, ObservableObject {
         if isFullySolved {
             // This is a temp success screen
             backgroundColor = .white
+            
+            let w = frame.width * 0.6
+            let h = frame.height * 0.6
+            let r = CGRect(x: frame.midX - w / 2, y: frame.midY - h / 2, width: w, height: h)
+            for _ in 0...10 {
+                let n = SKSpriteNode(color: .red, size: CGSize(width: 25, height: 25))
+                n.position = CGPoint(x: r.midX, y: r.minY)
+                addChild(n)
+                let dur = 2.0
+                n.run(.group([
+                    .fadeOut(withDuration: dur),
+                    .move(to: CGPoint(x: lerp(from: r.minX, to: r.maxY, ratio: Double.random(in: 0...1)), y: r.maxY), duration: dur)
+                ])) {
+                    n.removeFromParent()
+                }
+            }
         }
+    }
+    
+    private func lerp(from: Double, to: Double, ratio: Double) -> Double {
+        return (from * (1 - ratio)) + (to * ratio)
     }
     
     // Called when the board enters the unsolved state - inverse of solved
@@ -477,7 +499,10 @@ class SliderScene: SKScene, ObservableObject {
         if !isPaused {
             // Animate the tile position
             tile.run(.move(to: newPos, duration: settings.speedFactor * 0.125)) { [weak self] () in
-                self?.impactOccurred()
+                if self != nil {
+                    self!.run(self!.clickSound)
+                    self!.impactOccurred()
+                }
             }
         } else {
             tile.position = newPos
@@ -486,7 +511,8 @@ class SliderScene: SKScene, ObservableObject {
     
     // Shuffle the board
     private func shuffle(_ board: BoardNode) {
-        shuffle(board, count: 10 * board.model.columns * board.model.rows)
+        //shuffle(board, count: 10 * board.model.columns * board.model.rows)
+        shuffle(board, count: 2)
     }
     
     // Shuffles the board by making count moves
@@ -507,10 +533,10 @@ class SliderScene: SKScene, ObservableObject {
             // Values were chosen such that this means not a difference of 2
             if abs(direction - lastDirection) != 2 {
                 switch direction {
-                case 0: slid = slideUp(board, playFeedback: false)
-                case 1: slid = slideRight(board, playFeedback: false)
-                case 2: slid = slideDown(board, playFeedback: false)
-                case 3: slid = slideLeft(board, playFeedback: false)
+                case 0: slid = slideUp(board)
+                case 1: slid = slideRight(board)
+                case 2: slid = slideDown(board)
+                case 3: slid = slideLeft(board)
                 default: assert(false, "unexpected direction")
                 }
             }
@@ -523,29 +549,29 @@ class SliderScene: SKScene, ObservableObject {
     }
     
     // Move one tile left into empty slot if possible
-    private func slideLeft(_ board: BoardNode, playFeedback: Bool) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 1, verticalOffset: 0, playFeedback: playFeedback)
+    private func slideLeft(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 1, verticalOffset: 0)
     }
     
     // Move one tile right into empty slot if possible
-    private func slideRight(_ board: BoardNode, playFeedback: Bool) -> Bool {
-        return slideToEmpty(board, horizontalOffset: -1, verticalOffset: 0, playFeedback: playFeedback)
+    private func slideRight(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: -1, verticalOffset: 0)
     }
     
     // Move one tile up into empty slot if possible
-    private func slideUp(_ board: BoardNode, playFeedback: Bool) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: 1, playFeedback: playFeedback)
+    private func slideUp(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: 1)
     }
     
     // Move one tile down into empty slot if possible
-    private func slideDown(_ board: BoardNode, playFeedback: Bool) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: -1, playFeedback: playFeedback)
+    private func slideDown(_ board: BoardNode) -> Bool {
+        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: -1)
     }
 
     // Move the tile at the specified position offset from the empty tile into
     // the empty slot by swapping the two's tile position (with animations).
     // This is the base operation for any tile movement.
-    private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int, playFeedback: Bool) -> Bool {
+    private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int) -> Bool {
         let wasSolved = board.model.isSolved
         if let ordinal = board.model.swapWithEmpty(horizontalOffset: horizontalOffset, verticalOffset: verticalOffset) {
             updateTilePosition(board, ordinal: ordinal)
@@ -562,7 +588,6 @@ class SliderScene: SKScene, ObservableObject {
     
     // Moves the specified tile if possible
     private func trySlideTile(_ tile: TileNode) -> Bool {
-        var isFirstSlide = true
         let m = tile.board.model
         guard !m.isSolved else { return false }
         let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
@@ -572,17 +597,15 @@ class SliderScene: SKScene, ObservableObject {
             if verticalMoves < 0 {
                 // Shift down emptyCoord.row - currentRow times
                 for _ in verticalMoves...(-1) {
-                    let slid = slideDown(tile.board, playFeedback: isFirstSlide)
+                    let slid = slideDown(tile.board)
                     assert(slid, "Couldn't slide down")
-                    isFirstSlide = false
                 }
                 return true
             } else if verticalMoves > 0 {
                 // Shift up currentRow - emptyCoord.row times
                 for _ in 1...verticalMoves {
-                    let slid = slideUp(tile.board, playFeedback: isFirstSlide)
+                    let slid = slideUp(tile.board)
                     assert(slid, "Couldn't slide up")
-                    isFirstSlide = false
                 }
                 return true
             }
@@ -591,17 +614,15 @@ class SliderScene: SKScene, ObservableObject {
             if horizontalMoves < 0 {
                 // Shift right emptyCoord.column - currentColumn times
                 for _ in horizontalMoves...(-1) {
-                    let slid = slideRight(tile.board, playFeedback: isFirstSlide)
+                    let slid = slideRight(tile.board)
                     assert(slid, "Couldn't slide right")
-                    isFirstSlide = false
                 }
                 return true
             } else if horizontalMoves > 0 {
                 // Shift left currentColumn - emptyCoord.column times
                 for _ in 1...horizontalMoves {
-                    let slid = slideLeft(tile.board, playFeedback: isFirstSlide)
+                    let slid = slideLeft(tile.board)
                     assert(slid, "Couldn't slide left")
-                    isFirstSlide = false
                 }
                 return true
             }
