@@ -331,13 +331,11 @@ class SliderScene: SKScene, ObservableObject {
         }
         contentNode.name = nodeNameTileContent
         
-        var labelText: String?
-        //if board.model.columns == 3 && board.model.rows == 3 {
-        //    let blackArrows = "⬉⬆︎⬈⬅︎◎➡︎⬋⬇︎⬊"
-        //    labelText = blackArrows.substring(ordinal)
-        //}
-
-        let labelNode = SKLabelNode(text: labelText ?? String(format: "%d", 1 + ordinal))
+        let labelText = settings.labels.glyphFor(
+            columns: board.model.columns,
+            rows: board.model.rows,
+            ordinal: ordinal)
+        let labelNode = SKLabelNode(text: labelText)
         labelNode.name = nodeNameLabel
         labelNode.fontColor = UIColor(settings.tileNumberColor)
         labelNode.fontName = settings.tileNumberFontFace
@@ -365,7 +363,7 @@ class SliderScene: SKScene, ObservableObject {
         
         return tileNode
     }
-    
+        
     // Reveal tiles in the board by waiting for the specified delay
     // and then starting each tile's entrance during the stagger timeframe
     // which each last duration.
