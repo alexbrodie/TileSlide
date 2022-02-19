@@ -24,4 +24,9 @@ final class SliderSettings: ObservableObject {
     @Published var tileMarginSize: Double = 0.02;
     // The playback multipler with 1 being normal, and 2 taking twice as long
     @Published var speedFactor: Double = 1.0;
+    // This is a handy knob to pass things around for temporarily debugging purposes, e.g.
+    // to figure out what value to hard code something to by fiddling with it in game. This
+    // isn't to be used by anything in ship-ready code. But leave it here so that we don't
+    // have to re-wire up a temp value to do this each time.
+    @Published var debug: Double = 0;
 }

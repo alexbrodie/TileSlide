@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DB3F9B7427C0B1A90033D640 /* Click.caf in Resources */ = {isa = PBXBuildFile; fileRef = DB3F9B7227C0B1A90033D640 /* Click.caf */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
 		DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D6D226FA2750058AFFB /* SliderScene.swift */; };
 		DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */; };
@@ -20,11 +19,11 @@
 		DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */; };
 		DBAA31E027BB9E9200CA9011 /* version.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DF27BB9E9200CA9011 /* version.swift */; };
 		DBAA31E227BBAE3C00CA9011 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31E127BBAE3C00CA9011 /* String.swift */; };
+		DBDD31DF27C0CEFC003257F3 /* Click.wav in Resources */ = {isa = PBXBuildFile; fileRef = DBDD31DE27C0CEFC003257F3 /* Click.wav */; };
 		DBDE9E8C27BE22A50032C4FC /* SKNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBDE9E8B27BE22A50032C4FC /* SKNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		DB3F9B7227C0B1A90033D640 /* Click.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Click.caf; sourceTree = "<group>"; };
 		DB663D36226F9DFA0058AFFB /* TileSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TileSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB663D46226F9DFC0058AFFB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DB663D4B226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -39,6 +38,7 @@
 		DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderBoard.swift; sourceTree = "<group>"; };
 		DBAA31DF27BB9E9200CA9011 /* version.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = version.swift; sourceTree = "<group>"; };
 		DBAA31E127BBAE3C00CA9011 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
+		DBDD31DE27C0CEFC003257F3 /* Click.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = Click.wav; sourceTree = "<group>"; };
 		DBDE9E8B27BE22A50032C4FC /* SKNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKNode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -86,7 +86,7 @@
 		DB3F9B7027C0B1A90033D640 /* Audio */ = {
 			isa = PBXGroup;
 			children = (
-				DB3F9B7227C0B1A90033D640 /* Click.caf */,
+				DBDD31DE27C0CEFC003257F3 /* Click.wav */,
 			);
 			path = Audio;
 			sourceTree = "<group>";
@@ -183,7 +183,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */,
-				DB3F9B7427C0B1A90033D640 /* Click.caf in Resources */,
+				DBDD31DF27C0CEFC003257F3 /* Click.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

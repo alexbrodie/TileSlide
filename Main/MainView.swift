@@ -90,6 +90,14 @@ struct MainView: View {
                         Text("Doguillo v\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")\n\(app_build_date).\(app_commit)")
                             .multilineTextAlignment(.center)
                             .font(.footnote)
+                        // Debug
+                        HStack {
+                            Slider(value: $settings.debug, in: 0...1) {
+                                Text("Debug")
+                            }
+                            Text("\(settings.debug)")
+                        }
+                        
                     }
                         .background(RoundedRectangle(cornerRadius: 8)
                             .foregroundColor(.white)

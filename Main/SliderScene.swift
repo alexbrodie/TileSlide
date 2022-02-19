@@ -51,7 +51,7 @@ class SliderScene: SKScene, ObservableObject {
     private let nodeNameTile = "til"
     private let nodeNameCrop = "crp"
     
-    private let clickSound = SKAction.playSoundFileNamed("Click.caf", waitForCompletion: false)
+    private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
 
     // MARK: UI State
     // Last time that tilting the device slid a tile
@@ -213,7 +213,7 @@ class SliderScene: SKScene, ObservableObject {
             if impactFeedback == nil {
                 impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             }
-            impactFeedback!.impactOccurred(intensity: 0.3)
+            impactFeedback!.impactOccurred(intensity: 0.4)
         }
     }
     
@@ -498,11 +498,15 @@ class SliderScene: SKScene, ObservableObject {
 
         if !isPaused {
             // Animate the tile position
-            tile.run(.move(to: newPos, duration: settings.speedFactor * 0.125)) { [weak self] () in
-                if self != nil {
-                    self!.run(self!.clickSound)
-                    self!.impactOccurred()
-                }
+            let moveDuration = settings.speedFactor * 0.125
+            tile.run(.group([
+                .move(to: newPos, duration: moveDuration),
+                .sequence([
+                    .wait(forDuration: Double.maximum(moveDuration - 0.1125, 0)),
+                    clickSound,
+                ])
+            ])) { [weak self] in
+                self?.impactOccurred()
             }
         } else {
             tile.position = newPos
