@@ -7,25 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DB663D3E226F9DFA0058AFFB /* Actions.sks in Resources */ = {isa = PBXBuildFile; fileRef = DB663D3D226F9DFA0058AFFB /* Actions.sks */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
 		DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D6D226FA2750058AFFB /* SliderScene.swift */; };
 		DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */; };
 		DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7E27B4D53A0000ACC2 /* MainView.swift */; };
 		DB70DA8127B61A940000ACC2 /* SliderSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA8027B61A940000ACC2 /* SliderSettings.swift */; };
 		DB94E71827B7831E00161A75 /* CustomDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB94E71727B7831E00161A75 /* CustomDialog.swift */; };
-		DBAA31D727BAED7A00CA9011 /* extension_CGRect.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31D627BAED7A00CA9011 /* extension_CGRect.swift */; };
-		DBAA31D927BAEDC400CA9011 /* extension_CGSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */; };
-		DBAA31DB27BAEE0D00CA9011 /* extension_UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */; };
+		DBAA31D727BAED7A00CA9011 /* CGRect.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31D627BAED7A00CA9011 /* CGRect.swift */; };
+		DBAA31D927BAEDC400CA9011 /* CGSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31D827BAEDC400CA9011 /* CGSize.swift */; };
+		DBAA31DB27BAEE0D00CA9011 /* UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DA27BAEE0D00CA9011 /* UIImage.swift */; };
 		DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */; };
 		DBAA31E027BB9E9200CA9011 /* version.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31DF27BB9E9200CA9011 /* version.swift */; };
-		DBAA31E227BBAE3C00CA9011 /* extension_String.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31E127BBAE3C00CA9011 /* extension_String.swift */; };
-		DBDE9E8C27BE22A50032C4FC /* extension_SKNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBDE9E8B27BE22A50032C4FC /* extension_SKNode.swift */; };
+		DBAA31E227BBAE3C00CA9011 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAA31E127BBAE3C00CA9011 /* String.swift */; };
+		DBDE9E8C27BE22A50032C4FC /* SKNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBDE9E8B27BE22A50032C4FC /* SKNode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		DB663D36226F9DFA0058AFFB /* TileSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TileSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		DB663D3D226F9DFA0058AFFB /* Actions.sks */ = {isa = PBXFileReference; lastKnownFileType = file.sks; path = Actions.sks; sourceTree = "<group>"; };
 		DB663D46226F9DFC0058AFFB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DB663D4B226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DB663D6D226FA2750058AFFB /* SliderScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderScene.swift; sourceTree = "<group>"; };
@@ -33,13 +31,13 @@
 		DB70DA7E27B4D53A0000ACC2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		DB70DA8027B61A940000ACC2 /* SliderSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderSettings.swift; sourceTree = "<group>"; };
 		DB94E71727B7831E00161A75 /* CustomDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomDialog.swift; sourceTree = "<group>"; };
-		DBAA31D627BAED7A00CA9011 /* extension_CGRect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_CGRect.swift; sourceTree = "<group>"; };
-		DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_CGSize.swift; sourceTree = "<group>"; };
-		DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_UIImage.swift; sourceTree = "<group>"; };
+		DBAA31D627BAED7A00CA9011 /* CGRect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGRect.swift; sourceTree = "<group>"; };
+		DBAA31D827BAEDC400CA9011 /* CGSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGSize.swift; sourceTree = "<group>"; };
+		DBAA31DA27BAEE0D00CA9011 /* UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImage.swift; sourceTree = "<group>"; };
 		DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderBoard.swift; sourceTree = "<group>"; };
 		DBAA31DF27BB9E9200CA9011 /* version.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = version.swift; sourceTree = "<group>"; };
-		DBAA31E127BBAE3C00CA9011 /* extension_String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_String.swift; sourceTree = "<group>"; };
-		DBDE9E8B27BE22A50032C4FC /* extension_SKNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension_SKNode.swift; sourceTree = "<group>"; };
+		DBAA31E127BBAE3C00CA9011 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
+		DBDE9E8B27BE22A50032C4FC /* SKNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKNode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,9 +51,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		DB3F9B6A27C0A95D0033D640 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				DBAA31E127BBAE3C00CA9011 /* String.swift */,
+				DBDE9E8B27BE22A50032C4FC /* SKNode.swift */,
+				DBAA31DA27BAEE0D00CA9011 /* UIImage.swift */,
+				DBAA31D827BAEDC400CA9011 /* CGSize.swift */,
+				DBAA31D627BAED7A00CA9011 /* CGRect.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		DB663D2D226F9DFA0058AFFB = {
 			isa = PBXGroup;
 			children = (
+				DB3F9B6A27C0A95D0033D640 /* Extensions */,
 				DB663D38226F9DFA0058AFFB /* TileSlide */,
 				DB663D37226F9DFA0058AFFB /* Products */,
 			);
@@ -72,14 +83,8 @@
 		DB663D38226F9DFA0058AFFB /* TileSlide */ = {
 			isa = PBXGroup;
 			children = (
-				DB663D3D226F9DFA0058AFFB /* Actions.sks */,
 				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
 				DB94E71727B7831E00161A75 /* CustomDialog.swift */,
-				DBAA31D627BAED7A00CA9011 /* extension_CGRect.swift */,
-				DBAA31D827BAEDC400CA9011 /* extension_CGSize.swift */,
-				DBAA31E127BBAE3C00CA9011 /* extension_String.swift */,
-				DBDE9E8B27BE22A50032C4FC /* extension_SKNode.swift */,
-				DBAA31DA27BAEE0D00CA9011 /* extension_UIImage.swift */,
 				DB663D4B226F9DFC0058AFFB /* Info.plist */,
 				DB70DA7E27B4D53A0000ACC2 /* MainView.swift */,
 				DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */,
@@ -151,7 +156,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */,
-				DB663D3E226F9DFA0058AFFB /* Actions.sks in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -183,17 +187,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */,
-				DBAA31D727BAED7A00CA9011 /* extension_CGRect.swift in Sources */,
+				DBAA31D727BAED7A00CA9011 /* CGRect.swift in Sources */,
 				DBAA31E027BB9E9200CA9011 /* version.swift in Sources */,
-				DBAA31E227BBAE3C00CA9011 /* extension_String.swift in Sources */,
-				DBAA31D927BAEDC400CA9011 /* extension_CGSize.swift in Sources */,
+				DBAA31E227BBAE3C00CA9011 /* String.swift in Sources */,
+				DBAA31D927BAEDC400CA9011 /* CGSize.swift in Sources */,
 				DBAA31DD27BAEECB00CA9011 /* SliderBoard.swift in Sources */,
 				DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */,
 				DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */,
-				DBDE9E8C27BE22A50032C4FC /* extension_SKNode.swift in Sources */,
+				DBDE9E8C27BE22A50032C4FC /* SKNode.swift in Sources */,
 				DB70DA8127B61A940000ACC2 /* SliderSettings.swift in Sources */,
 				DB94E71827B7831E00161A75 /* CustomDialog.swift in Sources */,
-				DBAA31DB27BAEE0D00CA9011 /* extension_UIImage.swift in Sources */,
+				DBAA31DB27BAEE0D00CA9011 /* UIImage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
