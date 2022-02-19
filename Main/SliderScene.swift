@@ -51,7 +51,7 @@ class SliderScene: SKScene, ObservableObject {
     private let nodeNameTile = "til"
     private let nodeNameCrop = "crp"
     
-    private let clickSound = SKAction.playSoundFileNamed(Bundle.main.path(forResource: "Click", ofType: "wav")!, waitForCompletion: false)
+    private let clickSound = SKAction.playSoundFileNamed("Click.caf", waitForCompletion: false)
 
     // MARK: UI State
     // Last time that tilting the device slid a tile

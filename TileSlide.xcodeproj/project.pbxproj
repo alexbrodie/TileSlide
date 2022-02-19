@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DB3F9B7427C0B1A90033D640 /* Click.caf in Resources */ = {isa = PBXBuildFile; fileRef = DB3F9B7227C0B1A90033D640 /* Click.caf */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
 		DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D6D226FA2750058AFFB /* SliderScene.swift */; };
 		DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */; };
@@ -23,6 +24,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DB3F9B7227C0B1A90033D640 /* Click.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Click.caf; sourceTree = "<group>"; };
 		DB663D36226F9DFA0058AFFB /* TileSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TileSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB663D46226F9DFC0058AFFB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DB663D4B226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -81,9 +83,18 @@
 			path = TileSlide;
 			sourceTree = "<group>";
 		};
+		DB3F9B7027C0B1A90033D640 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				DB3F9B7227C0B1A90033D640 /* Click.caf */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		DB663D2D226F9DFA0058AFFB = {
 			isa = PBXGroup;
 			children = (
+				DB3F9B7027C0B1A90033D640 /* Audio */,
 				DB663D46226F9DFC0058AFFB /* Assets.xcassets */,
 				DB3F9B6C27C0AB4B0033D640 /* TileSlide */,
 				DB3F9B6B27C0AAE60033D640 /* UIControls */,
@@ -172,6 +183,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */,
+				DB3F9B7427C0B1A90033D640 /* Click.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
