@@ -45,69 +45,82 @@ struct MainView: View {
                 Spacer()
             }
                 .ignoresSafeArea()
-            // Settings
-            if settingsPresented {
-                Rectangle()
-                    .foregroundColor(.black.opacity(0.5))
-                    .ignoresSafeArea()
-                    .onTapGesture { withAnimation { settingsPresented = false } }
-                ZStack {
-                    // Settings content
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Button {
-                                withAnimation {
-                                    settingsPresented = false
-                                }
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .imageScale(.small)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color(white: 1, opacity: 0.06))
-                                    .cornerRadius(16)
-                                    .foregroundColor(.black)
+        }
+            .ignoresSafeArea()
+            .fullScreenCover(isPresented: $settingsPresented) {
+        } content: {
+            // Settings content
+            NavigationView {
+                Form {
+                    HStack {
+                        Spacer()
+                        Button {
+                            withAnimation {
+                                settingsPresented = false
+                            }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .imageScale(.small)
+                                .frame(width: 32, height: 32)
+                                .background(Color(white: 1, opacity: 0.06))
+                                .cornerRadius(16)
+                                .foregroundColor(.black)
+                        }
+                    }
+                    Toggle(isOn: $settings.enableHaptics) {
+                        Text("Enable Haptics")
+                    }
+                    Slider(value: $settings.speedFactor, in: 0...3) {
+                        Text("Speed")
+                    } minimumValueLabel: {
+                        Text("Fast")
+                    } maximumValueLabel: {
+                        Text("Slow")
+                    }
+                    Section(header: Text("Label")) {
+                        Picker("Label type", selection: $settings.tileLabelType) {
+                            ForEach(LabelType.allCases, id: \.self) { labelType in
+                                Text(verbatim: labelType.glyphs.name)
+                                    .tag(LabelType?.some(labelType))
                             }
                         }
-                        Toggle(isOn: $settings.enableHaptics) {
-                            Text("Enable Haptics")
+                            .pickerStyle(.segmented)
+                        Picker("Label font", selection: $settings.tileLabelFont) {
+                            ForEach(fontNames, id: \.self) { fontName in
+                                HStack {
+                                    Text(verbatim: "\(fontName)")
+                                        .tag(fontName)
+                                    Spacer()
+                                    Text("123 \u{2196}\u{FE0E}\u{2191}\u{FE0E}\u{2197}\u{FE0E}")
+                                        .font(.custom(fontName, size: 64))
+                                }
+                            }
                         }
-                        ColorPicker("Number color", selection: $settings.tileNumberColor)
-                        Slider(value: $settings.tileNumberFontSize, in: 0...1) {
-                            Text("Number size")
+                        ColorPicker("Label color", selection: $settings.tileLabelColor)
+                        Slider(value: $settings.tileLabelSize, in: 0...1) {
+                            Text("Label size")
                         } minimumValueLabel: {
                             Text("Small")
                         } maximumValueLabel: {
                             Text("Large")
                         }
-                        Slider(value: $settings.speedFactor, in: 0...3) {
-                            Text("Speed")
-                        } minimumValueLabel: {
-                            Text("Fast")
-                        } maximumValueLabel: {
-                            Text("Slow")
-                        }
-                        Text("Doguillo v\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")\n\(app_build_date).\(app_commit)")
-                            .multilineTextAlignment(.center)
-                            .font(.footnote)
-                        // Debug
-                        HStack {
-                            Slider(value: $settings.debug, in: 0...1) {
-                                Text("Debug")
-                            }
-                            Text("\(settings.debug)")
-                        }
-                        
                     }
-                        .background(RoundedRectangle(cornerRadius: 8)
-                            .foregroundColor(.white)
-                            .shadow(color: .black, radius: 8)
-                            .padding(-8))
-                        .foregroundColor(.black)
+                    // Version
+                    Text("Doguillo v\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")\n\(app_build_date).\(app_commit)")
+                        .multilineTextAlignment(.center)
+                        .font(.footnote)
+                    // Debug
+                    HStack {
+                        Slider(value: $settings.debug, in: 0...1) {
+                            Text("Debug")
+                        }
+                        Text("\(settings.debug)")
+                    }
                 }
-                    .padding(32)
+                    .navigationTitle("Settings")
             }
         }
+            .ignoresSafeArea()
     }
 }
 

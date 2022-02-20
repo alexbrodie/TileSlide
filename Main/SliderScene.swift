@@ -21,7 +21,7 @@ class SliderScene: SKScene, ObservableObject {
         }
         // The identifier for the tile in the board
         var ordinal: Int = -1
-        // The label containing the tile number associate with this
+        // The label containing the number/glyph associate with this
         var label: SKLabelNode?
         // The crop node used to implement margins
         var crop: SKCropNode?
@@ -174,12 +174,25 @@ class SliderScene: SKScene, ObservableObject {
         }
         cancellableBag.removeAll()
         // Set up new sinks
-        settings.$tileNumberColor.sink { [weak self] value in
+        settings.$tileLabelType.sink { [weak self] value in
+            self?.forEachTile { board, tile in
+                tile.label?.text = value.glyphFor(
+                    columns: board.model.columns,
+                    rows: board.model.rows,
+                    ordinal: tile.ordinal)
+            }
+        }.store(in: &cancellableBag)
+        settings.$tileLabelColor.sink { [weak self] value in
             self?.forEachTile { (board, tile) in
                 tile.label?.fontColor = UIColor(value)
             }
         }.store(in: &cancellableBag)
-        settings.$tileNumberFontSize.sink { [weak self] value in
+        settings.$tileLabelFont.sink { [weak self] value in
+            self?.forEachTile { board, tile in
+                tile.label?.fontName = value
+            }
+        }.store(in: &cancellableBag)
+        settings.$tileLabelSize.sink { [weak self] value in
             self?.forEachTile { (board, tile) in
                 tile.label?.fontSize = tile.size.height * CGFloat(value)
             }
@@ -331,15 +344,15 @@ class SliderScene: SKScene, ObservableObject {
         }
         contentNode.name = nodeNameTileContent
         
-        let labelText = settings.labels.glyphFor(
+        let labelText = settings.tileLabelType.glyphFor(
             columns: board.model.columns,
             rows: board.model.rows,
             ordinal: ordinal)
         let labelNode = SKLabelNode(text: labelText)
         labelNode.name = nodeNameLabel
-        labelNode.fontColor = UIColor(settings.tileNumberColor)
-        labelNode.fontName = settings.tileNumberFontFace
-        labelNode.fontSize = rect.height * CGFloat(settings.tileNumberFontSize)
+        labelNode.fontColor = UIColor(settings.tileLabelColor)
+        labelNode.fontName = settings.tileLabelFont
+        labelNode.fontSize = rect.height * CGFloat(settings.tileLabelSize)
         labelNode.horizontalAlignmentMode = .center
         labelNode.verticalAlignmentMode = .center
         labelNode.zPosition = 1
@@ -500,7 +513,7 @@ class SliderScene: SKScene, ObservableObject {
             tile.run(.group([
                 .move(to: newPos, duration: moveDuration),
                 .sequence([
-                    .wait(forDuration: Double.maximum(moveDuration - 0.1125, 0)),
+                    .wait(forDuration: Double.maximum(moveDuration - settings.debug * 0.2, 0)),
                     clickSound,
                 ])
             ])) { [weak self] in
