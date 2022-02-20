@@ -85,18 +85,18 @@ struct MainView: View {
                             }
                         }
                             .pickerStyle(.segmented)
-                        Picker("Label font", selection: $settings.tileLabelFont) {
+                        Picker("Font", selection: $settings.tileLabelFont) {
                             ForEach(fontNames, id: \.self) { fontName in
                                 HStack {
                                     Text(verbatim: "\(fontName)")
                                         .tag(fontName)
                                     Spacer()
                                     Text("123 \u{2196}\u{FE0E}\u{2191}\u{FE0E}\u{2197}\u{FE0E}")
-                                        .font(.custom(fontName, size: 64))
+                                        .font(.custom(fontName, size: 0))
                                 }
                             }
                         }
-                        ColorPicker("Label color", selection: $settings.tileLabelColor)
+                        ColorPicker("Color", selection: $settings.tileLabelColor)
                         Slider(value: $settings.tileLabelSize, in: 0...1) {
                             Text("Label size")
                         } minimumValueLabel: {

@@ -226,7 +226,7 @@ class SliderScene: SKScene, ObservableObject {
             if impactFeedback == nil {
                 impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             }
-            impactFeedback!.impactOccurred(intensity: 0.4)
+            impactFeedback!.impactOccurred(intensity: 0.3)
         }
     }
     
@@ -510,15 +510,19 @@ class SliderScene: SKScene, ObservableObject {
         if !isPaused {
             // Animate the tile position
             let moveDuration = settings.speedFactor * 0.125
+            let clickLeadIn = 0.068 // empirically derived magic number
+            let hapticLeadIn = 0.028 // empirically derived magic number
             tile.run(.group([
                 .move(to: newPos, duration: moveDuration),
                 .sequence([
-                    .wait(forDuration: Double.maximum(moveDuration - settings.debug * 0.2, 0)),
+                    .wait(forDuration: Double.maximum(moveDuration - hapticLeadIn, 0)),
+                    .run { self.impactOccurred() },
+                ]),
+                .sequence([
+                    .wait(forDuration: Double.maximum(moveDuration - clickLeadIn, 0)),
                     clickSound,
-                ])
-            ])) { [weak self] in
-                self?.impactOccurred()
-            }
+                ]),
+            ]))
         } else {
             tile.position = newPos
         }
