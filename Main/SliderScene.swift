@@ -304,7 +304,7 @@ class SliderScene: SKScene, ObservableObject {
     // Builds a tile that is populated but not attached to anything
     private func createTile(_ board: BoardNode, texture: SKTexture?, ordinal: Int) -> TileNode {
         let coord = board.model.indexToCoordinate(ordinal)
-        let rect = computeTileRect(board, ordinal: ordinal)
+        let rect = board.computeTileRect(ordinal)
         
         var contentNode: SKSpriteNode
         if let tex = texture {
@@ -468,22 +468,10 @@ class SliderScene: SKScene, ObservableObject {
         return CGSize(width: size.width - margin, height: size.height - margin)
     }
     
-    // Get the rectangle for the given grid coordinate
-    private func computeTileRect(_ board: BoardNode, ordinal: Int) -> CGRect {
-        let coord = board.model.getOrdinalCoordinate(ordinal)
-        let size = board.size
-        let bounds = CGRect(x: size.width * -0.5, y: size.height * -0.5, width: size.width, height: size.height)
-        let tileWidth = bounds.width / CGFloat(board.model.columns)
-        let tileHeight = bounds.height / CGFloat(board.model.rows)
-        let x = bounds.minX + CGFloat(coord.column) * tileWidth
-        let y = bounds.maxY - CGFloat(coord.row + 1) * tileHeight
-        return CGRect(x: x, y: y, width: tileWidth, height: tileHeight)
-    }
-    
     // Update the position of the node to match its model
     private func updateTilePosition(_ board: BoardNode, ordinal: Int) {
         let tile = board.tiles[ordinal]
-        let newPos = computeTileRect(board, ordinal: ordinal).mid
+        let newPos = board.computeTileRect(ordinal).mid
 
         if !isPaused {
             // Animate the tile position
