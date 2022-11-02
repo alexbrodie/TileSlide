@@ -14,30 +14,8 @@ import SwiftUI
 
 class SliderScene: SKScene, ObservableObject {
     
-    private class TileNode : SKSpriteNode {
-        // The board that contans this tile
-        var board: BoardNode {
-            get { parent as! BoardNode }
-        }
-        // The identifier for the tile in the board
-        var ordinal: Int = -1
-        // The label containing the number/glyph associate with this
-        var label: SKLabelNode?
-        // The crop node used to implement margins
-        var crop: SKCropNode?
-        // The content (non-chrome) visual
-        var content: SKSpriteNode?
-    }
-    
-    private class BoardNode : SKSpriteNode {
-        // The current state of the board
-        var model = SliderBoard()
-        // Each child tile indexed by ordinal
-        var tiles: [TileNode] = []
-        // Convinence accessor for the empty tile from the above collection
-        var emptyTile: TileNode {
-            get { return tiles[model.emptyOrdinal] }
-        }
+    private func lerp(from: Double, to: Double, ratio: Double) -> Double {
+        return (from * (1 - ratio)) + (to * ratio)
     }
     
     @ObservedObject var settings = SliderSettings() {
@@ -376,7 +354,7 @@ class SliderScene: SKScene, ObservableObject {
         
         return tileNode
     }
-        
+    
     // Reveal tiles in the board by waiting for the specified delay
     // and then starting each tile's entrance during the stagger timeframe
     // which each last duration.
@@ -406,7 +384,7 @@ class SliderScene: SKScene, ObservableObject {
             }
         }
     }
-    
+   
     // Called when the board enters the solved state - inverse of unsolved
     private func solved(_ board: BoardNode) {
         let duration: TimeInterval = settings.speedFactor * 0.25
@@ -418,11 +396,14 @@ class SliderScene: SKScene, ObservableObject {
             tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
         }
 
+        // We assume the empty tile was never altered from its initial
+        // hidden state and correct size/position from createTile
         board.emptyTile.run(.fadeIn(withDuration: duration))
 
-        // See if an ancestor is a tile - if so this is sub-board, else topmost
         if let tile: TileNode = board.firstAncestorOfType() {
             if !tile.board.model.isSolved {
+                // "board" is newly solved sub-board whose parent board isn't
+                // solved, i.e. it has become an active tile
                 tile.label?.run(.fadeIn(withDuration: duration))
             }
         }
@@ -457,14 +438,11 @@ class SliderScene: SKScene, ObservableObject {
         }
     }
     
-    private func lerp(from: Double, to: Double, ratio: Double) -> Double {
-        return (from * (1 - ratio)) + (to * ratio)
-    }
-    
     // Called when the board enters the unsolved state - inverse of solved
     private func unsolved(_ board: BoardNode) {
         let duration: TimeInterval = settings.speedFactor * 0.25
 
+        // Reveal each non-empty tile and add a margin around each via crop
         for tile in board.tiles {
             if tile.ordinal != board.model.emptyOrdinal {
                 tile.label?.run(.fadeIn(withDuration: duration))

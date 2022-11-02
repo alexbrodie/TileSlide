@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DB133F31290ED25B003A89B3 /* TileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB133F30290ED25B003A89B3 /* TileNode.swift */; };
+		DB133F33290ED2E1003A89B3 /* BoardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB133F32290ED2E1003A89B3 /* BoardNode.swift */; };
 		DB663D47226F9DFC0058AFFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB663D46226F9DFC0058AFFB /* Assets.xcassets */; };
 		DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB663D6D226FA2750058AFFB /* SliderScene.swift */; };
 		DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB70DA7A27B4C79B0000ACC2 /* TileSlideApp.swift */; };
@@ -24,6 +26,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DB133F30290ED25B003A89B3 /* TileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileNode.swift; sourceTree = "<group>"; };
+		DB133F32290ED2E1003A89B3 /* BoardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardNode.swift; sourceTree = "<group>"; };
 		DB663D36226F9DFA0058AFFB /* TileSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TileSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB663D46226F9DFC0058AFFB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DB663D4B226F9DFC0058AFFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -119,6 +123,8 @@
 				DBAA31DC27BAEECB00CA9011 /* SliderBoard.swift */,
 				DB663D6D226FA2750058AFFB /* SliderScene.swift */,
 				DB70DA8027B61A940000ACC2 /* SliderSettings.swift */,
+				DB133F30290ED25B003A89B3 /* TileNode.swift */,
+				DB133F32290ED2E1003A89B3 /* BoardNode.swift */,
 			);
 			path = Main;
 			sourceTree = "<group>";
@@ -214,6 +220,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB133F33290ED2E1003A89B3 /* BoardNode.swift in Sources */,
 				DB70DA7B27B4C79B0000ACC2 /* TileSlideApp.swift in Sources */,
 				DBAA31D727BAED7A00CA9011 /* CGRect.swift in Sources */,
 				DBAA31E027BB9E9200CA9011 /* version.swift in Sources */,
@@ -223,6 +230,7 @@
 				DB70DA7F27B4D53A0000ACC2 /* MainView.swift in Sources */,
 				DB663D6E226FA2750058AFFB /* SliderScene.swift in Sources */,
 				DBDE9E8C27BE22A50032C4FC /* SKNode.swift in Sources */,
+				DB133F31290ED25B003A89B3 /* TileNode.swift in Sources */,
 				DB70DA8127B61A940000ACC2 /* SliderSettings.swift in Sources */,
 				DB94E71827B7831E00161A75 /* CustomDialog.swift in Sources */,
 				DBAA31DB27BAEE0D00CA9011 /* UIImage.swift in Sources */,
