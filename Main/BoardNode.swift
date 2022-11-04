@@ -10,15 +10,36 @@ import Foundation
 import SpriteKit
 
 class BoardNode : SKSpriteNode {
+    
+    static let nodeName = "brd"
+    
     // The current state of the board
-    var model = SliderBoard()
+    var model: SliderBoard
     // Each child tile indexed by ordinal
-    var tiles: [TileNode] = []
+    var tiles: [TileNode]
     // Convinence accessor for the empty tile from the above collection
     var emptyTile: TileNode {
         get { return tiles[model.emptyOrdinal] }
     }
     
+    public init(model: SliderBoard, texture: SKTexture?, rect: CGRect) {
+        self.model = model
+        self.tiles = []
+        super.init(texture: nil, color: .clear, size: rect.size)
+        self.position = rect.mid
+        self.name = BoardNode.nodeName
+        
+        for ordinal in 0..<model.ordinalPositions.count {
+            let rect = computeTileRect(ordinal)
+            let tile = TileNode(model: model, ordinal: ordinal, texture: texture, rect: rect)
+            self.addChild(tile)
+            self.tiles.append(tile)
+        }
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // Get the rectangle for the given grid coordinate
     public func computeTileRect(_ ordinal: Int) -> CGRect {

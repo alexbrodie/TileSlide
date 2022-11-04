@@ -21,14 +21,7 @@ class SliderScene: SKScene, ObservableObject {
     @ObservedObject var settings = SliderSettings() {
         didSet { onSettingsReplaced() }
     }
-    
-    // MARK: Node Names
-    private let nodeNameBoard = "brd"
-    private let nodeNameLabel = "lbl"
-    private let nodeNameTileContent = "con"
-    private let nodeNameTile = "til"
-    private let nodeNameCrop = "crp"
-    
+        
     private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
 
     // MARK: UI State
@@ -113,8 +106,7 @@ class SliderScene: SKScene, ObservableObject {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches {
-            let location = t.location(in: self)
-            _ = handleTouch(atPoint(location))
+            _ = handleTouch(atPoint(t.location(in: self)))
         }
     }
     
@@ -240,7 +232,7 @@ class SliderScene: SKScene, ObservableObject {
     
     private func cleanupBoard() {
         // Fade out and remove old stuff
-        enumerateChildNodes(withName: nodeNameBoard) { (board, stop) in
+        enumerateChildNodes(withName: BoardNode.nodeName) { (board, stop) in
             board.run(.fadeOut(withDuration: self.settings.speedFactor * 0.25)) {
                 board.removeFromParent()
             }
@@ -259,21 +251,7 @@ class SliderScene: SKScene, ObservableObject {
     
     private func createBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?, rect: CGRect) -> BoardNode {
         let model = SliderBoard(columns: columns, row: rows, emptyOrdinal: emptyOrdinal)
-        
-        let board = BoardNode(color: .clear, size: rect.size)
-        board.name = nodeNameBoard
-        board.position = rect.mid
-        board.model = model
-
-        // Build nodes for each tile (initially hidden)
-        board.tiles = []
-        for ordinal in 0..<model.ordinalPositions.count {
-            let tile = createTile(board, texture: texture, ordinal: ordinal)
-            board.addChild(tile)
-            board.tiles.append(tile)
-        }
-
-        return board
+        return BoardNode(model: model, texture: texture, rect: rect)
     }
     
     private func createSubBoard(tile: TileNode) -> BoardNode {
@@ -299,60 +277,6 @@ class SliderScene: SKScene, ObservableObject {
         node.removeFromParent()
         tile.content = board
         return board
-    }
-    
-    // Builds a tile that is populated but not attached to anything
-    private func createTile(_ board: BoardNode, texture: SKTexture?, ordinal: Int) -> TileNode {
-        let coord = board.model.indexToCoordinate(ordinal)
-        let rect = board.computeTileRect(ordinal)
-        
-        var contentNode: SKSpriteNode
-        if let tex = texture {
-            let texRect = tex.textureRect()
-            let subTexRect = CGRect(
-                x: texRect.minX + texRect.width * CGFloat(coord.column) / CGFloat(board.model.columns),
-                y: texRect.minY + texRect.height * CGFloat(board.model.rows - coord.row - 1) / CGFloat(board.model.rows),
-                width: texRect.width / CGFloat(board.model.columns),
-                height: texRect.height / CGFloat(board.model.rows))
-            let subTex = SKTexture(rect: subTexRect, in: tex)
-            contentNode = SKSpriteNode(texture: subTex, size: rect.size)
-        } else {
-            let color = ordinal % 2 == 0 ? SKColor.black : SKColor.red
-            contentNode = SKSpriteNode(color: color, size: rect.size)
-        }
-        contentNode.name = nodeNameTileContent
-        
-        let labelText = settings.tileLabelType.glyphFor(
-            columns: board.model.columns,
-            rows: board.model.rows,
-            ordinal: ordinal)
-        let labelNode = SKLabelNode(text: labelText)
-        labelNode.name = nodeNameLabel
-        labelNode.fontColor = UIColor(settings.tileLabelColor)
-        labelNode.fontName = settings.tileLabelFont
-        labelNode.fontSize = rect.height * CGFloat(settings.tileLabelSize)
-        labelNode.horizontalAlignmentMode = .center
-        labelNode.verticalAlignmentMode = .center
-        labelNode.zPosition = 1
-        
-        let cropNode = SKCropNode()
-        cropNode.name = nodeNameCrop
-        cropNode.maskNode = SKSpriteNode(color: .black, size: rect.size)
-        
-        let tileNode = TileNode(color: .clear, size: rect.size)
-        tileNode.name = nodeNameTile
-        tileNode.alpha = 0
-        tileNode.position = rect.mid
-        tileNode.ordinal = ordinal
-        tileNode.label = labelNode
-        tileNode.crop = cropNode
-        tileNode.content = contentNode
-
-        cropNode.addChild(contentNode)
-        cropNode.addChild(labelNode)
-        tileNode.addChild(cropNode)
-        
-        return tileNode
     }
     
     // Reveal tiles in the board by waiting for the specified delay
@@ -461,13 +385,7 @@ class SliderScene: SKScene, ObservableObject {
             tile.label?.run(.fadeOut(withDuration: duration))
         }
     }
-    
-    // Gets the size of a crop node in the cropped state (showing margins)
-    private func getCropNodeSize(_ tileSize: CGSize) -> CGSize {
-        let margin = min(size.width, size.height) * settings.tileMarginSize
-        return CGSize(width: size.width - margin, height: size.height - margin)
-    }
-    
+
     // Update the position of the node to match its model
     private func updateTilePosition(_ board: BoardNode, ordinal: Int) {
         let tile = board.tiles[ordinal]
