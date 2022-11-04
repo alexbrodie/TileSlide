@@ -12,7 +12,7 @@ import GameplayKit
 import SpriteKit
 import SwiftUI
 
-class SliderScene: SKScene, ObservableObject {
+class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     
     private func lerp(from: Double, to: Double, ratio: Double) -> Double {
         return (from * (1 - ratio)) + (to * ratio)
@@ -38,6 +38,8 @@ class SliderScene: SKScene, ObservableObject {
     // Place to show text for debugging
     private var debugText: SKLabelNode? = nil
     
+    //MARK: - Initialization
+    
     override init() {
         super.init(size: CGSize(width: 0, height: 0))
         backgroundColor = .black
@@ -48,6 +50,8 @@ class SliderScene: SKScene, ObservableObject {
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    //MARK: - SKScene
     
     override func didMove(to view: SKView) {
         //setEnableTiltToSlide(true)
@@ -125,8 +129,8 @@ class SliderScene: SKScene, ObservableObject {
         
         // Fallback handling - this happens on ancestors first, i.e. the routing phase
         if let tile = node as? TileNode {
-            //subShuffleTile(tile)
-            //return true
+            subShuffleTile(tile)
+            return true
         }
         
         return false
@@ -208,22 +212,14 @@ class SliderScene: SKScene, ObservableObject {
         debugText = label
     }
     
+    //MARK: - Board management
+    
     private func setup() {
         let name = String(format: "Doguillo-%d", Int.random(in: 1...19))
         setupNewBoard(columns: 3, 
                       rows: 3, 
                       emptyOrdinal: 8, 
                       texture: SKTexture(imageNamed: name))
-    }
-    
-    // MARK: BoardNode methods
-    
-    private func cleanupBoard() {
-        // Fade out and remove old stuff
-        enumerateChildNodes(withName: BoardNode.nodeName) { (board, stop) in
-            (board as! BoardNode).cleanup()
-        }
-        currentBoard = nil
     }
     
     private func setupNewBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?) {
@@ -233,19 +229,39 @@ class SliderScene: SKScene, ObservableObject {
         let board = BoardNode(model: model, texture: texture, rect: rect)
         board.shuffle()
         
-        var subBoard = board;
-        for i in stride(from: 3, to: 1, by: -1) {
-            let subModel = SliderBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal)
-            subBoard = subBoard.tiles[i].createSubBoard(model: subModel)
-            subBoard.shuffle()
-        }
+//        var subBoard = board;
+//        for i in stride(from: 3, to: 1, by: -1) {
+//            let subModel = SliderBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal)
+//            subBoard = subBoard.tiles[i].createSubBoard(model: subModel)
+//            subBoard.shuffle()
+//        }
 
         addChild(board)
         board.revealTiles()
     }
     
-    // Called when the board enters the solved state - inverse of unsolved
-    private func solved(_ board: BoardNode) {
+    private func cleanupBoard() {
+        // Fade out and remove old stuff
+        enumerateChildNodes(withName: BoardNode.nodeName) { (board, stop) in
+            (board as! BoardNode).cleanup()
+        }
+        currentBoard = nil
+    }
+    
+    // Turns a tile into a sub-board if it's not already and then shuffles it
+    private func subShuffleTile(_ tile: TileNode) {
+        var subBoard = tile.content as? BoardNode
+        if subBoard == nil {
+            let model = SliderBoard(columns: tile.board.model.columns, rows: tile.board.model.rows, emptyOrdinal: tile.ordinal)
+            subBoard = tile.createSubBoard(model: model)
+        }
+        subBoard!.shuffle(3)
+    }
+    
+    //MARK: - BoardNodeDelegate
+    
+    // Called when the board enters the solved state
+    func boardSolved(_ board: BoardNode) {
 
         // Determine if all other boards are solved as well
         let rootBoard: BoardNode = board.lastAncestorOfType()!
@@ -275,16 +291,6 @@ class SliderScene: SKScene, ObservableObject {
                 }
             }
         }
-    }
-    
-    // Turns a tile into a sub-board if it's not already and then shuffles it
-    private func subShuffleTile(_ tile: TileNode) {
-        var subBoard = tile.content as? BoardNode
-        if subBoard == nil {
-            let model = SliderBoard(columns: tile.board.model.columns, rows: tile.board.model.rows, emptyOrdinal: tile.ordinal)
-            subBoard = tile.createSubBoard(model: model)
-        }
-        subBoard!.shuffle(3)
     }
     
     // MARK: Node Lookup

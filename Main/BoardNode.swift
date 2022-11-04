@@ -9,14 +9,13 @@
 import Foundation
 import SpriteKit
 
-class BoardNode : SKSpriteNode {
-    
+protocol BoardNodeDelegate: AnyObject {
+    func boardSolved(_ board: BoardNode)
+}
+
+class BoardNode: SKSpriteNode {
+    // By convention nodes of this type use this default name
     static let nodeName = "brd"
-    
-    private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
-    
-    // Generator for feedback, e.g. haptics
-    private var impactFeedback: UIImpactFeedbackGenerator? = nil
     
     // The current state of the board
     var model: SliderBoard
@@ -32,6 +31,14 @@ class BoardNode : SKSpriteNode {
             return SliderSettings() // TODO! BUGBUG
         }
     }
+
+    // Click sound used when tiles move into position
+    private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
+    
+    // Generator for feedback, e.g. haptics
+    private var impactFeedback: UIImpactFeedbackGenerator? = nil
+
+    //MARK: - Construction and destruction
     
     public init(model: SliderBoard, texture: SKTexture?, rect: CGRect) {
         self.model = model
@@ -88,6 +95,8 @@ class BoardNode : SKSpriteNode {
             self.removeFromParent()
         }
     }
+    
+    //MARK: - Tile movement
     
     // Shuffle the board
     public func shuffle() {
@@ -210,6 +219,10 @@ class BoardNode : SKSpriteNode {
                 tile.label?.run(.fadeIn(withDuration: duration))
             }
         }
+        
+        if let delegate: BoardNodeDelegate = firstAncestorOfType() {
+            delegate.boardSolved(self)
+        }
     }
     
     // Called when the board enters the unsolved state - inverse of solved
@@ -236,6 +249,8 @@ class BoardNode : SKSpriteNode {
             tile.label?.run(.fadeOut(withDuration: duration))
         }
     }
+    
+    //MARK: - Utilities
     
     // Get the rectangle for the given grid coordinate
     private func computeTileRect(_ ordinal: Int) -> CGRect {
