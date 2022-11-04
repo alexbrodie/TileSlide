@@ -22,7 +22,6 @@ class SliderScene: SKScene, ObservableObject {
         didSet { onSettingsReplaced() }
     }
         
-    private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
 
     // MARK: UI State
     // Last time that tilting the device slid a tile
@@ -30,8 +29,6 @@ class SliderScene: SKScene, ObservableObject {
 
     // MARK: Connections
     private var cancellableBag = Set<AnyCancellable>()
-    // Generator for feedback, e.g. haptics
-    private var impactFeedback: UIImpactFeedbackGenerator? = nil
     // Object to fetch accelerometer/gyro data
     private var motionManager: CMMotionManager? = nil
     
@@ -79,20 +76,20 @@ class SliderScene: SKScene, ObservableObject {
                     if abs(pitch) > abs(roll) {
                         if pitch < -tiltThreshold {
                             // Negative pitch == tilt forward
-                            slid = slideUp(board)
+                            slid = board.slideUp()
                         } else if pitch > tiltThreshold {
                             // Positive pitch == tilt backward
-                            slid = slideDown(board)
+                            slid = board.slideDown()
                         }
                     }
                     
                     if !slid {
                         if roll < -tiltThreshold {
                             // Negative roll == tilt left
-                            slid = slideLeft(board)
+                            slid = board.slideLeft()
                         } else if roll > tiltThreshold {
                             // Positive roll == tilt right
-                            slid = slideRight(board)
+                            slid = board.slideRight()
                         }
                     }
                     
@@ -114,7 +111,7 @@ class SliderScene: SKScene, ObservableObject {
         // First chance processing - this happens on the descendants first, i.e. the bubble phase
         if let tile = node as? TileNode {
             // Move the tile the touch was in
-            if trySlideTile(tile) {
+            if tile.slide() {
                 return true
             }
         }
@@ -128,8 +125,8 @@ class SliderScene: SKScene, ObservableObject {
         
         // Fallback handling - this happens on ancestors first, i.e. the routing phase
         if let tile = node as? TileNode {
-            subShuffleTile(tile)
-            return true
+            //subShuffleTile(tile)
+            //return true
         }
         
         return false
@@ -191,15 +188,6 @@ class SliderScene: SKScene, ObservableObject {
         motionManager?.stopDeviceMotionUpdates()
     }
     
-    private func impactOccurred() {
-        if settings.enableHaptics {
-            if impactFeedback == nil {
-                impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            }
-            impactFeedback!.impactOccurred(intensity: 0.3)
-        }
-    }
-    
     private func makeDebugText() {
         let size = CGSize(width: frame.width, height: frame.height * 0.03)
         
@@ -233,9 +221,7 @@ class SliderScene: SKScene, ObservableObject {
     private func cleanupBoard() {
         // Fade out and remove old stuff
         enumerateChildNodes(withName: BoardNode.nodeName) { (board, stop) in
-            board.run(.fadeOut(withDuration: self.settings.speedFactor * 0.25)) {
-                board.removeFromParent()
-            }
+            (board as! BoardNode).cleanup()
         }
         currentBoard = nil
     }
@@ -243,94 +229,23 @@ class SliderScene: SKScene, ObservableObject {
     private func setupNewBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?) {
         cleanupBoard()
         let rect = frame.middleWithAspect(texture?.size().aspect ?? 1)
-        let board = createBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal, texture: texture, rect: rect)
-        shuffle(board)
-        addChild(board)
-        revealTiles(board)
-    }
-    
-    private func createBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?, rect: CGRect) -> BoardNode {
-        let model = SliderBoard(columns: columns, row: rows, emptyOrdinal: emptyOrdinal)
-        return BoardNode(model: model, texture: texture, rect: rect)
-    }
-    
-    private func createSubBoard(tile: TileNode) -> BoardNode {
-        // Create board with same size, position and texture as the tile's content sprite
-        let node = tile.content!
-        let model = tile.board.model
-        let board = createBoard(
-            columns: model.columns,
-            rows: model.rows,
-            emptyOrdinal: tile.ordinal,
-            texture: node.texture,
-            rect: node.frame)
-        // If the content is already being shown then we need to show the new board
-        // before we remove the old content. Otherwise, we'll rely on
-        if !node.isHidden {
-            for tile in board.tiles {
-                tile.alpha = 1
-            }
-        }
-        board.zPosition = node.zPosition
-        board.alpha = node.alpha
-        node.parent!.addChild(board)
-        node.removeFromParent()
-        tile.content = board
-        return board
-    }
-    
-    // Reveal tiles in the board by waiting for the specified delay
-    // and then starting each tile's entrance during the stagger timeframe
-    // which each last duration.
-    private func revealTiles(_ board: BoardNode) {
-        let delay: TimeInterval = 0.25
-        let stagger: TimeInterval = 1.0
-        let duration: TimeInterval = 0.5
-        let solvedReveal: TimeInterval = 0.5
+        let model = SliderBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal)
+        let board = BoardNode(model: model, texture: texture, rect: rect)
+        board.shuffle()
         
-        if board.model.isSolved {
-            for tile in board.tiles {
-                tile.run(.fadeIn(withDuration: solvedReveal))
-            }
-        } else {
-            for tile in board.tiles {
-                if tile.ordinal != board.model.emptyOrdinal {
-                    let tilePercentile = CGFloat(tile.ordinal) / CGFloat(board.model.ordinalPositions.count - 1)
-                    tile.setScale(0.9)
-                    tile.run(.sequence([
-                        .wait(forDuration: settings.speedFactor * (delay + stagger * tilePercentile)),
-                        .group([
-                            .scale(to: 1, duration: settings.speedFactor * duration),
-                            .fadeIn(withDuration: settings.speedFactor * duration),
-                        ]),
-                        ]))
-                }
-            }
+        var subBoard = board;
+        for i in stride(from: 3, to: 1, by: -1) {
+            let subModel = SliderBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal)
+            subBoard = subBoard.tiles[i].createSubBoard(model: subModel)
+            subBoard.shuffle()
         }
+
+        addChild(board)
+        board.revealTiles()
     }
-   
+    
     // Called when the board enters the solved state - inverse of unsolved
     private func solved(_ board: BoardNode) {
-        let duration: TimeInterval = settings.speedFactor * 0.25
-        
-        // For each tile, remove the chrome to reveal the image, and make sure
-        // that it's full visible (especially for the "empty" tile)
-        for tile in board.tiles {
-            tile.label?.run(.fadeOut(withDuration: duration))
-            tile.crop?.maskNode?.run(.scale(to: tile.size, duration: duration))
-        }
-
-        // We assume the empty tile was never altered from its initial
-        // hidden state and correct size/position from createTile
-        board.emptyTile.run(.fadeIn(withDuration: duration))
-
-        if let tile: TileNode = board.firstAncestorOfType() {
-            if !tile.board.model.isSolved {
-                // "board" is newly solved sub-board whose parent board isn't
-                // solved, i.e. it has become an active tile
-                tile.label?.run(.fadeIn(withDuration: duration))
-            }
-        }
 
         // Determine if all other boards are solved as well
         let rootBoard: BoardNode = board.lastAncestorOfType()!
@@ -362,185 +277,14 @@ class SliderScene: SKScene, ObservableObject {
         }
     }
     
-    // Called when the board enters the unsolved state - inverse of solved
-    private func unsolved(_ board: BoardNode) {
-        let duration: TimeInterval = settings.speedFactor * 0.25
-
-        // Reveal each non-empty tile and add a margin around each via crop
-        for tile in board.tiles {
-            if tile.ordinal != board.model.emptyOrdinal {
-                tile.label?.run(.fadeIn(withDuration: duration))
-                if let crop = tile.crop {
-                    let margin = min(tile.size.width, tile.size.height) * settings.tileMarginSize
-                    let cropSize = CGSize(width: tile.size.width - margin, height: tile.size.height - margin)
-                    crop.maskNode?.run(.scale(to: cropSize, duration: duration))
-                }
-            }
-        }
-
-        board.emptyTile.run(.fadeOut(withDuration: duration))
-
-        // See if an ancestor is a tile
-        if let tile: TileNode = board.firstAncestorOfType() {
-            tile.label?.run(.fadeOut(withDuration: duration))
-        }
-    }
-
-    // Update the position of the node to match its model
-    private func updateTilePosition(_ board: BoardNode, ordinal: Int) {
-        let tile = board.tiles[ordinal]
-        let newPos = board.computeTileRect(ordinal).mid
-
-        if !isPaused {
-            // Animate the tile position
-            let moveDuration = settings.speedFactor * 0.125
-            let clickLeadIn = 0.068 // empirically derived magic number
-            let hapticLeadIn = 0.028 // empirically derived magic number
-            tile.run(.group([
-                .move(to: newPos, duration: moveDuration),
-                .sequence([
-                    .wait(forDuration: Double.maximum(moveDuration - hapticLeadIn, 0)),
-                    .run { self.impactOccurred() },
-                ]),
-                .sequence([
-                    .wait(forDuration: Double.maximum(moveDuration - clickLeadIn, 0)),
-                    clickSound,
-                ]),
-            ]))
-        } else {
-            tile.position = newPos
-        }
-    }
-    
-    // Shuffle the board
-    private func shuffle(_ board: BoardNode) {
-        //shuffle(board, count: 10 * board.model.columns * board.model.rows)
-        shuffle(board, count: 2)
-    }
-    
-    // Shuffles the board by making count moves
-    private func shuffle(_ board: BoardNode, count: Int) {
-        let oldIsPaused = isPaused
-        isPaused = true
-        defer { isPaused = oldIsPaused }
-        
-        var shuffleCount: Int = 0
-        var lastDirection: Int = 42  // Something out of bounds [-2,5]
-        
-        while shuffleCount < count {
-            let direction = Int.random(in: 0..<4) // NESW
-            
-            var slid: Bool = false
-
-            // Disallow the reverse of the previous - no left then right or up then down.
-            // Values were chosen such that this means not a difference of 2
-            if abs(direction - lastDirection) != 2 {
-                switch direction {
-                case 0: slid = slideUp(board)
-                case 1: slid = slideRight(board)
-                case 2: slid = slideDown(board)
-                case 3: slid = slideLeft(board)
-                default: assert(false, "unexpected direction")
-                }
-            }
-
-            if slid {
-                lastDirection = direction
-                shuffleCount += 1
-            }
-        }
-    }
-    
-    // Move one tile left into empty slot if possible
-    private func slideLeft(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 1, verticalOffset: 0)
-    }
-    
-    // Move one tile right into empty slot if possible
-    private func slideRight(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: -1, verticalOffset: 0)
-    }
-    
-    // Move one tile up into empty slot if possible
-    private func slideUp(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: 1)
-    }
-    
-    // Move one tile down into empty slot if possible
-    private func slideDown(_ board: BoardNode) -> Bool {
-        return slideToEmpty(board, horizontalOffset: 0, verticalOffset: -1)
-    }
-
-    // Move the tile at the specified position offset from the empty tile into
-    // the empty slot by swapping the two's tile position (with animations).
-    // This is the base operation for any tile movement.
-    private func slideToEmpty(_ board: BoardNode, horizontalOffset: Int, verticalOffset: Int) -> Bool {
-        let wasSolved = board.model.isSolved
-        if let ordinal = board.model.swapWithEmpty(horizontalOffset: horizontalOffset, verticalOffset: verticalOffset) {
-            updateTilePosition(board, ordinal: ordinal)
-            if board.model.isSolved {
-                solved(board)
-            } else if wasSolved {
-                unsolved(board)
-            }
-            return true
-        } else {
-            return false
-        }
-    }
-    
-    // Moves the specified tile if possible
-    private func trySlideTile(_ tile: TileNode) -> Bool {
-        let m = tile.board.model
-        guard !m.isSolved else { return false }
-        let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
-        let tileCoord = m.getOrdinalCoordinate(tile.ordinal)
-        if tileCoord.column == emptyCoord.column {
-            let verticalMoves = tileCoord.row - emptyCoord.row
-            if verticalMoves < 0 {
-                // Shift down emptyCoord.row - currentRow times
-                for _ in verticalMoves...(-1) {
-                    let slid = slideDown(tile.board)
-                    assert(slid, "Couldn't slide down")
-                }
-                return true
-            } else if verticalMoves > 0 {
-                // Shift up currentRow - emptyCoord.row times
-                for _ in 1...verticalMoves {
-                    let slid = slideUp(tile.board)
-                    assert(slid, "Couldn't slide up")
-                }
-                return true
-            }
-        } else if tileCoord.row == emptyCoord.row {
-            let horizontalMoves = tileCoord.column - emptyCoord.column
-            if horizontalMoves < 0 {
-                // Shift right emptyCoord.column - currentColumn times
-                for _ in horizontalMoves...(-1) {
-                    let slid = slideRight(tile.board)
-                    assert(slid, "Couldn't slide right")
-                }
-                return true
-            } else if horizontalMoves > 0 {
-                // Shift left currentColumn - emptyCoord.column times
-                for _ in 1...horizontalMoves {
-                    let slid = slideLeft(tile.board)
-                    assert(slid, "Couldn't slide left")
-                }
-                return true
-            }
-        }
-        // Can't move
-        return false
-    }
-    
     // Turns a tile into a sub-board if it's not already and then shuffles it
     private func subShuffleTile(_ tile: TileNode) {
         var subBoard = tile.content as? BoardNode
         if subBoard == nil {
-            subBoard = createSubBoard(tile: tile)
+            let model = SliderBoard(columns: tile.board.model.columns, rows: tile.board.model.rows, emptyOrdinal: tile.ordinal)
+            subBoard = tile.createSubBoard(model: model)
         }
-        shuffle(subBoard!, count: 3)
+        subBoard!.shuffle(3)
     }
     
     // MARK: Node Lookup

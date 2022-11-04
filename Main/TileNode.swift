@@ -66,6 +66,7 @@ class TileNode : SKSpriteNode {
             ordinal: ordinal)
         let labelNode = SKLabelNode(text: labelText)
         labelNode.name = TileNode.nodeNameLabel
+        labelNode.alpha = 0
         labelNode.fontColor = UIColor(settings.tileLabelColor)
         labelNode.fontName = settings.tileLabelFont
         labelNode.fontSize = rect.height * CGFloat(settings.tileLabelSize)
@@ -88,5 +89,69 @@ class TileNode : SKSpriteNode {
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    // Moves the specified tile if possible
+    public func slide() -> Bool {
+        let m = board.model
+        guard !m.isSolved else { return false }
+        let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
+        let tileCoord = m.getOrdinalCoordinate(ordinal)
+        if tileCoord.column == emptyCoord.column {
+            let verticalMoves = tileCoord.row - emptyCoord.row
+            if verticalMoves < 0 {
+                // Shift down emptyCoord.row - currentRow times
+                for _ in verticalMoves...(-1) {
+                    let slid = board.slideDown()
+                    assert(slid, "Couldn't slide down")
+                }
+                return true
+            } else if verticalMoves > 0 {
+                // Shift up currentRow - emptyCoord.row times
+                for _ in 1...verticalMoves {
+                    let slid = board.slideUp()
+                    assert(slid, "Couldn't slide up")
+                }
+                return true
+            }
+        } else if tileCoord.row == emptyCoord.row {
+            let horizontalMoves = tileCoord.column - emptyCoord.column
+            if horizontalMoves < 0 {
+                // Shift right emptyCoord.column - currentColumn times
+                for _ in horizontalMoves...(-1) {
+                    let slid = board.slideRight()
+                    assert(slid, "Couldn't slide right")
+                }
+                return true
+            } else if horizontalMoves > 0 {
+                // Shift left currentColumn - emptyCoord.column times
+                for _ in 1...horizontalMoves {
+                    let slid = board.slideLeft()
+                    assert(slid, "Couldn't slide left")
+                }
+                return true
+            }
+        }
+        // Can't move
+        return false
+    }
+    
+    public func createSubBoard(model: SliderBoard) -> BoardNode {
+        // Create board with same size, position and texture as the tile's content sprite
+        let node = content!
+        let subBoard = BoardNode(model: model, texture: node.texture, rect: node.frame)
+        // If the content is already being shown then we need to show the new board
+        // before we remove the old content. Otherwise, we'll rely on revealTiles
+        if !node.isHidden {
+            for tile in subBoard.tiles {
+                tile.alpha = 1
+            }
+        }
+        subBoard.zPosition = node.zPosition
+        subBoard.alpha = node.alpha
+        node.parent!.addChild(subBoard)
+        node.removeFromParent()
+        content = subBoard
+        return subBoard
     }
 }

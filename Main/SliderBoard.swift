@@ -39,7 +39,7 @@ class SliderBoard {
     }
 
     public init(columns inColumns: Int,
-                row inRows: Int,
+                rows inRows: Int,
                 emptyOrdinal inEmptyOrdinal: Int) {
         columns = inColumns
         rows = inRows
