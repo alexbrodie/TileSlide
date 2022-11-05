@@ -79,7 +79,7 @@ class BoardNode: SKSpriteNode {
                                 model: model,
                                 ordinal: ordinal,
                                 texture: subTex,
-                                rect: rect)
+                                rect: nodeRect)
             self.addChild(tile)
             self.tiles.append(tile)
         }
