@@ -24,6 +24,9 @@ final class SliderSettings: ObservableObject {
     @Published var tileLabelSize: Double = 0.9
     // The margin size around tiles where 1 is all margin, and 0 is no margin
     @Published var tileMarginSize: Double = 0.02;
+    // The size of non-movable padding area along the inner edges of the board
+    // where 1 is all padding and 0 is no padding
+    @Published var boardPaddingSize: Double = 0.05
     // The playback multipler with 1 being normal, and 2 taking twice as long
     @Published var speedFactor: Double = 1.0;
     // This is a handy knob to pass things around for temporarily debugging purposes, e.g.

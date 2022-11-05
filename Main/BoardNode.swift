@@ -30,13 +30,12 @@ class BoardNode: SKSpriteNode {
         get { return tiles[model.emptyOrdinal] }
     }
     
-
     // Click sound used when tiles move into position
     private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
     
     // Generator for feedback, e.g. haptics
     private var impactFeedback: UIImpactFeedbackGenerator? = nil
-
+    
     //MARK: - Construction and destruction
     
     public init(settings: SliderSettings,
@@ -47,15 +46,39 @@ class BoardNode: SKSpriteNode {
         self.model = model
         self.tiles = []
         super.init(texture: nil, color: .clear, size: rect.size)
+        //super.init(texture: texture, color: .clear, size: rect.size)
         self.position = rect.mid
         self.name = BoardNode.nodeName
+
+        // These are the bounds of the board with some padding along each edge
+        let bounds = CGRect(midX: 0, midY: 0, width: rect.size.width, height: rect.size.height)
+        let normEdgeSize = settings.boardPaddingSize / 2
         
+        // Normalized rectangles
+        let normEdgeRects: [CGRect] = [
+            CGRect(x: 0,                y: 0,                   width: 1,               height: normEdgeSize),
+            CGRect(x: 0,                y: 1 - normEdgeSize,    width: 1,               height: normEdgeSize),
+            CGRect(x: 0,                y: normEdgeSize,        width: normEdgeSize,    height: 1 - 2 * normEdgeSize),
+            CGRect(x: 1 - normEdgeSize, y: normEdgeSize,        width: normEdgeSize,    height: 1 - 2 * normEdgeSize)
+        ]
+        
+        // Copose the padding fill from texture cutouts based on normEdgeRects
+        for normRect in normEdgeRects {
+            let subTex = subTexture(texture: texture, normRect: normRect)
+            let nodeRect = bounds.denormalize(normRect)
+            let edgeNode = SKSpriteNode(texture: subTex, size: nodeRect.size)
+            edgeNode.position = nodeRect.mid
+            self.addChild(edgeNode)
+        }
+
         for ordinal in 0..<model.ordinalPositions.count {
-            let rect = computeTileRect(ordinal)
+            let normRect = computeNormalizedTileRect(ordinal)
+            let subTex = subTexture(texture: texture, normRect: normRect)
+            let nodeRect = bounds.denormalize(normRect)
             let tile = TileNode(settings: settings,
                                 model: model,
                                 ordinal: ordinal,
-                                texture: texture,
+                                texture: subTex,
                                 rect: rect)
             self.addChild(tile)
             self.tiles.append(tile)
@@ -85,7 +108,7 @@ class BoardNode: SKSpriteNode {
         } else {
             for tile in tiles {
                 if tile.ordinal != model.emptyOrdinal {
-                    let speedFactor = settings.speedFactor;
+                    let speedFactor = settings.speedFactor
                     let tilePercentile = CGFloat(tile.ordinal) / CGFloat(model.ordinalPositions.count - 1)
                     tile.setScale(0.9)
                     tile.run(.sequence([
@@ -184,7 +207,8 @@ class BoardNode: SKSpriteNode {
     // Update the position of the node to match its model
     private func updateTilePosition(_ ordinal: Int) {
         let tile = tiles[ordinal]
-        let newPos = computeTileRect(ordinal).mid
+        let bounds = CGRect(midX: 0, midY: 0, width: size.width, height: size.height)
+        let newPos = bounds.denormalize(computeNormalizedTileRect(ordinal)).mid
 
         if !isPaused {
             // Animate the tile position
@@ -261,8 +285,22 @@ class BoardNode: SKSpriteNode {
         }
     }
     
+    //MARK: - Layout
+        
+    // Get the rectangle for the given grid coordinate
+    private func computeNormalizedTileRect(_ ordinal: Int) -> CGRect {
+        let coord = model.getOrdinalCoordinate(ordinal)
+        let padding = settings.boardPaddingSize
+        let bounds = CGRect(x: padding / 2, y: padding / 2, width: 1 - padding, height: 1 - padding)
+        let tileWidth = bounds.width / CGFloat(model.columns)
+        let tileHeight = bounds.height / CGFloat(model.rows)
+        let x = bounds.minX + CGFloat(coord.column) * tileWidth
+        let y = bounds.maxY - CGFloat(coord.row + 1) * tileHeight
+        return CGRect(x: x, y: y, width: tileWidth, height: tileHeight)
+    }
+
     //MARK: - Utilities
-    
+
     public var isSolved: Bool {
         get { return model.isSolved }
     }
@@ -277,17 +315,7 @@ class BoardNode: SKSpriteNode {
         return true
     }
     
-    // Get the rectangle for the given grid coordinate
-    private func computeTileRect(_ ordinal: Int) -> CGRect {
-        let coord = model.getOrdinalCoordinate(ordinal)
-        let bounds = CGRect(x: size.width * -0.5, y: size.height * -0.5, width: size.width, height: size.height)
-        let tileWidth = bounds.width / CGFloat(model.columns)
-        let tileHeight = bounds.height / CGFloat(model.rows)
-        let x = bounds.minX + CGFloat(coord.column) * tileWidth
-        let y = bounds.maxY - CGFloat(coord.row + 1) * tileHeight
-        return CGRect(x: x, y: y, width: tileWidth, height: tileHeight)
-    }
-    
+    // Generate haptics appropriate for a collision
     private func impactOccurred() {
         if settings.enableHaptics {
             if impactFeedback == nil {
@@ -297,6 +325,13 @@ class BoardNode: SKSpriteNode {
         }
     }
     
+    // Creates a texture cutout from a sub-rect of another texture
+    private func subTexture(texture: SKTexture?, normRect: CGRect) -> SKTexture? {
+        guard let texture = texture else { return nil }
+        let subRect = texture.textureRect().denormalize(normRect)
+        return SKTexture(rect: subRect, in: texture)
+    }
+
     // Called when the settings property is set so that we can
     // reset sinks for our manual bindings
     private func onSettingsReplaced() {

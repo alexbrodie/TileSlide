@@ -46,15 +46,8 @@ class TileNode : SKSpriteNode {
         let coord = model.indexToCoordinate(ordinal)
         
         var contentNode: SKSpriteNode
-        if let tex = texture {
-            let texRect = tex.textureRect()
-            let subTexRect = CGRect(
-                x: texRect.minX + texRect.width * CGFloat(coord.column) / CGFloat(model.columns),
-                y: texRect.minY + texRect.height * CGFloat(model.rows - coord.row - 1) / CGFloat(model.rows),
-                width: texRect.width / CGFloat(model.columns),
-                height: texRect.height / CGFloat(model.rows))
-            let subTex = SKTexture(rect: subTexRect, in: tex)
-            contentNode = SKSpriteNode(texture: subTex, size: rect.size)
+        if let texture = texture {
+            contentNode = SKSpriteNode(texture: texture, size: rect.size)
         } else {
             let color = ordinal % 2 == 0 ? SKColor.black : SKColor.red
             contentNode = SKSpriteNode(color: color, size: rect.size)

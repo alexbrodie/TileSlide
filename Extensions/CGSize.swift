@@ -14,4 +14,9 @@ extension CGSize {
     public var aspect: CGFloat {
         get { return width / height }
     }
+    
+    // Multiply each dimension by the specified amount
+    public func scale(_ amount: CGFloat) -> CGSize {
+        return CGSize(width: width * amount, height: height * amount)
+    }
 }
