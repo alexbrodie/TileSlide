@@ -6,6 +6,7 @@
 //  Copyright © 2022 Alex Brodie. All rights reserved.
 //
 
+import Combine
 import Foundation
 import SpriteKit
 
@@ -17,6 +18,9 @@ class BoardNode: SKSpriteNode {
     // By convention nodes of this type use this default name
     static let nodeName = "brd"
     
+    private var settingsConnections = Set<AnyCancellable>()
+    public var settings: SliderSettings { didSet { onSettingsReplaced() } }
+
     // The current state of the board
     var model: SliderBoard
     // Each child tile indexed by ordinal
@@ -26,11 +30,6 @@ class BoardNode: SKSpriteNode {
         get { return tiles[model.emptyOrdinal] }
     }
     
-    var settings: SliderSettings {
-        get {
-            return SliderSettings() // TODO! BUGBUG
-        }
-    }
 
     // Click sound used when tiles move into position
     private let clickSound = SKAction.playSoundFileNamed("Click.wav", waitForCompletion: false)
@@ -40,7 +39,11 @@ class BoardNode: SKSpriteNode {
 
     //MARK: - Construction and destruction
     
-    public init(model: SliderBoard, texture: SKTexture?, rect: CGRect) {
+    public init(settings: SliderSettings,
+                model: SliderBoard,
+                texture: SKTexture?,
+                rect: CGRect) {
+        self.settings = settings
         self.model = model
         self.tiles = []
         super.init(texture: nil, color: .clear, size: rect.size)
@@ -49,10 +52,17 @@ class BoardNode: SKSpriteNode {
         
         for ordinal in 0..<model.ordinalPositions.count {
             let rect = computeTileRect(ordinal)
-            let tile = TileNode(model: model, ordinal: ordinal, texture: texture, rect: rect)
+            let tile = TileNode(settings: settings,
+                                model: model,
+                                ordinal: ordinal,
+                                texture: texture,
+                                rect: rect)
             self.addChild(tile)
             self.tiles.append(tile)
         }
+        
+        // Set up initial sinks
+        onSettingsReplaced()
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -213,13 +223,14 @@ class BoardNode: SKSpriteNode {
         emptyTile.run(.fadeIn(withDuration: duration))
         
         if let tile: TileNode = firstAncestorOfType() {
-            if !tile.board.model.isSolved {
+            if !tile.parentBoard.model.isSolved {
                 // self is newly solved sub-board whose parent board isn't
                 // solved, i.e. it has become an active tile
                 tile.label?.run(.fadeIn(withDuration: duration))
             }
         }
         
+        // Notifiy ancestor node of solve
         if let delegate: BoardNodeDelegate = firstAncestorOfType() {
             delegate.boardSolved(self)
         }
@@ -252,6 +263,20 @@ class BoardNode: SKSpriteNode {
     
     //MARK: - Utilities
     
+    public var isSolved: Bool {
+        get { return model.isSolved }
+    }
+    
+    public func isRecursivelySolved() -> Bool {
+        guard isSolved else { return false }
+        for tile in tiles {
+            if let child = tile.childBoard {
+                guard child.isRecursivelySolved() else { return false }
+            }
+        }
+        return true
+    }
+    
     // Get the rectangle for the given grid coordinate
     private func computeTileRect(_ ordinal: Int) -> CGRect {
         let coord = model.getOrdinalCoordinate(ordinal)
@@ -271,4 +296,45 @@ class BoardNode: SKSpriteNode {
             impactFeedback!.impactOccurred(intensity: 0.3)
         }
     }
+    
+    // Called when the settings property is set so that we can
+    // reset sinks for our manual bindings
+    private func onSettingsReplaced() {
+        // Clear old sinks
+        for o in settingsConnections {
+            o.cancel()
+        }
+        settingsConnections.removeAll()
+        // Set up new sinks
+        settings.$tileLabelType.sink { [weak self] value in
+            guard let s = self else { return }
+            let col = s.model.columns, row = s.model.rows
+            for tile in s.tiles {
+                tile.label?.text = value.glyphFor(
+                    columns: col,
+                    rows: row,
+                    ordinal: tile.ordinal)
+            }
+        }.store(in: &settingsConnections)
+        settings.$tileLabelColor.sink { [weak self] value in
+            for tile in self?.tiles ?? [] {
+                tile.label?.fontColor = UIColor(value)
+            }
+        }.store(in: &settingsConnections)
+        settings.$tileLabelFont.sink { [weak self] value in
+            for tile in self?.tiles ?? [] {
+                tile.label?.fontName = value
+            }
+        }.store(in: &settingsConnections)
+        settings.$tileLabelSize.sink { [weak self] value in
+            for tile in self?.tiles ?? [] {
+                tile.label?.fontSize = tile.size.height * CGFloat(value)
+            }
+        }.store(in: &settingsConnections)
+        // Apply seame settings to child boards too
+        for t in tiles {
+            t.childBoard?.settings = settings
+        }
+    }
+    
 }

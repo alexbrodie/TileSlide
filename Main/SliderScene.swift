@@ -21,18 +21,11 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     @ObservedObject var settings = SliderSettings() {
         didSet { onSettingsReplaced() }
     }
-        
 
-    // MARK: UI State
     // Last time that tilting the device slid a tile
     private var lastTiltShift: Date = Date()
-
-    // MARK: Connections
-    private var cancellableBag = Set<AnyCancellable>()
     // Object to fetch accelerometer/gyro data
     private var motionManager: CMMotionManager? = nil
-    
-    // MARK: Children
     // The current board
     private var currentBoard: BoardNode? = nil
     // Place to show text for debugging
@@ -139,35 +132,9 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     // Called when the settings property is set so that we can
     // reset sinks for our manual bindings
     private func onSettingsReplaced() {
-        // Clear old sinks
-        for o in cancellableBag {
-            o.cancel()
+        enumerateChildNodes(withName: BoardNode.nodeName) { (board, stop) in
+            (board as! BoardNode).settings = self.settings
         }
-        cancellableBag.removeAll()
-        // Set up new sinks
-        settings.$tileLabelType.sink { [weak self] value in
-            self?.forEachTile { board, tile in
-                tile.label?.text = value.glyphFor(
-                    columns: board.model.columns,
-                    rows: board.model.rows,
-                    ordinal: tile.ordinal)
-            }
-        }.store(in: &cancellableBag)
-        settings.$tileLabelColor.sink { [weak self] value in
-            self?.forEachTile { (board, tile) in
-                tile.label?.fontColor = UIColor(value)
-            }
-        }.store(in: &cancellableBag)
-        settings.$tileLabelFont.sink { [weak self] value in
-            self?.forEachTile { board, tile in
-                tile.label?.fontName = value
-            }
-        }.store(in: &cancellableBag)
-        settings.$tileLabelSize.sink { [weak self] value in
-            self?.forEachTile { (board, tile) in
-                tile.label?.fontSize = tile.size.height * CGFloat(value)
-            }
-        }.store(in: &cancellableBag)
     }
     
     private func setEnableTiltToSlide(_ enable: Bool) {
@@ -215,18 +182,16 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     //MARK: - Board management
     
     private func setup() {
-        let name = String(format: "Doguillo-%d", Int.random(in: 1...19))
-        setupNewBoard(columns: 3, 
-                      rows: 3, 
-                      emptyOrdinal: 8, 
-                      texture: SKTexture(imageNamed: name))
-    }
-    
-    private func setupNewBoard(columns: Int, rows: Int, emptyOrdinal: Int, texture: SKTexture?) {
         cleanupBoard()
-        let rect = frame.middleWithAspect(texture?.size().aspect ?? 1)
-        let model = SliderBoard(columns: columns, rows: rows, emptyOrdinal: emptyOrdinal)
-        let board = BoardNode(model: model, texture: texture, rect: rect)
+
+        // Pick a board and config magic numbers
+        let textureName = String(format: "Doguillo-%d", Int.random(in: 1...19))
+        let model = SliderBoard(columns: 3, rows: 3, emptyOrdinal: 8)
+
+        // Construct board from the asset name and model definition
+        let texture = SKTexture(imageNamed: textureName)
+        let rect = frame.middleWithAspect(texture.size().aspect)
+        let board = BoardNode(settings: settings, model: model, texture: texture, rect: rect)
         board.shuffle()
         
 //        var subBoard = board;
@@ -238,23 +203,31 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
 
         addChild(board)
         board.revealTiles()
+        setCurrentBoard(board)
     }
     
     private func cleanupBoard() {
-        // Fade out and remove old stuff
         enumerateChildNodes(withName: BoardNode.nodeName) { (board, stop) in
             (board as! BoardNode).cleanup()
         }
-        currentBoard = nil
+        setCurrentBoard(nil)
+    }
+    
+    private func setCurrentBoard(_ board: BoardNode?) {
+        currentBoard = board
     }
     
     // Turns a tile into a sub-board if it's not already and then shuffles it
     private func subShuffleTile(_ tile: TileNode) {
-        var subBoard = tile.content as? BoardNode
+        var subBoard = tile.childBoard
         if subBoard == nil {
-            let model = SliderBoard(columns: tile.board.model.columns, rows: tile.board.model.rows, emptyOrdinal: tile.ordinal)
-            subBoard = tile.createSubBoard(model: model)
+            let parentModel = tile.parentBoard.model
+            let model = SliderBoard(columns: parentModel.columns,
+                                    rows: parentModel.rows,
+                                    emptyOrdinal: tile.ordinal)
+            subBoard = tile.createChildBoard(model: model)
         }
+        setCurrentBoard(subBoard)
         subBoard!.shuffle(3)
     }
     
@@ -262,16 +235,8 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     
     // Called when the board enters the solved state
     func boardSolved(_ board: BoardNode) {
-
-        // Determine if all other boards are solved as well
         let rootBoard: BoardNode = board.lastAncestorOfType()!
-        let isFullySolved = forEachBoardAndTile(board: rootBoard) { board in
-            return board.model.isSolved
-        } onTile: { board, tile in
-            return true
-        }
-
-        if isFullySolved {
+        if rootBoard.isRecursivelySolved() {
             // This is a temp success screen
             backgroundColor = .white
             
@@ -291,41 +256,5 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
                 }
             }
         }
-    }
-    
-    // MARK: Node Lookup
-    
-    // Enumerate all the TileNode in the visual tree
-    private func forEachTile(_ onTile: (BoardNode, TileNode) -> Void) {
-        for child in children {
-            _ = forEachBoardAndTile(board: child) { board in
-                return true
-            } onTile: { board, tile in
-                onTile(board, tile)
-                return true
-            }
-        }
-    }
-    
-    // Enumerate all the TileNode in the visual tree under the provided board
-    // Callbacks should return true to continue the enumeration. This method
-    // evaluates to true if all the callbacks return true and the enumeration
-    // completes. If one callback returns false the enumeration is canceled
-    // and this method evalues to false
-    private func forEachBoardAndTile(board: SKNode,
-                                     onBoard: (BoardNode) -> Bool,
-                                     onTile: (BoardNode, TileNode) -> Bool) -> Bool {
-        guard let board = board as? BoardNode  else {
-            return true
-        }
-        guard onBoard(board) else {
-            return false
-        }
-        for tile in board.tiles {
-            guard onTile(board, tile) && forEachBoardAndTile(board: tile.content!, onBoard: onBoard, onTile: onTile) else {
-                return false
-            }
-        }
-        return true
     }
 }

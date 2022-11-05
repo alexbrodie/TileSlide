@@ -16,10 +16,6 @@ class TileNode : SKSpriteNode {
     static let nodeNameCrop = "crp"
     static let nodeNameContent = "con"
 
-    // The board that contans this tile
-    var board: BoardNode {
-        get { parent as! BoardNode }
-    }
 
     // The identifier for the tile in the board
     var ordinal: Int
@@ -29,9 +25,18 @@ class TileNode : SKSpriteNode {
     var crop: SKCropNode?
     // The content (non-chrome) visual (BoardNode or image sprite)
     var content: SKSpriteNode?
+
+    // The board that contans this tile
+    var parentBoard: BoardNode { get { parent as! BoardNode } }
+    // A child board if there is one
+    var childBoard: BoardNode? { get { return content as? BoardNode } }
     
     // Builds a tile that is populated but not attached to anything
-    public init(model: SliderBoard, ordinal: Int, texture: SKTexture?, rect: CGRect) {
+    public init(settings: SliderSettings,
+                model: SliderBoard,
+                ordinal: Int,
+                texture: SKTexture?,
+                rect: CGRect) {
         self.ordinal = ordinal
         super.init(texture: nil, color: .clear, size: rect.size)
         self.name = TileNode.nodeName
@@ -39,10 +44,6 @@ class TileNode : SKSpriteNode {
         self.position = rect.mid
         
         let coord = model.indexToCoordinate(ordinal)
-        
-        // TODO!! BUGBUG - route correct settings here
-        let settings = SliderSettings()
-        settings.tileLabelColor = .green
         
         var contentNode: SKSpriteNode
         if let tex = texture {
@@ -93,7 +94,7 @@ class TileNode : SKSpriteNode {
     
     // Moves the specified tile if possible
     public func slide() -> Bool {
-        let m = board.model
+        let m = parentBoard.model
         guard !m.isSolved else { return false }
         let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
         let tileCoord = m.getOrdinalCoordinate(ordinal)
@@ -102,14 +103,14 @@ class TileNode : SKSpriteNode {
             if verticalMoves < 0 {
                 // Shift down emptyCoord.row - currentRow times
                 for _ in verticalMoves...(-1) {
-                    let slid = board.slideDown()
+                    let slid = parentBoard.slideDown()
                     assert(slid, "Couldn't slide down")
                 }
                 return true
             } else if verticalMoves > 0 {
                 // Shift up currentRow - emptyCoord.row times
                 for _ in 1...verticalMoves {
-                    let slid = board.slideUp()
+                    let slid = parentBoard.slideUp()
                     assert(slid, "Couldn't slide up")
                 }
                 return true
@@ -119,14 +120,14 @@ class TileNode : SKSpriteNode {
             if horizontalMoves < 0 {
                 // Shift right emptyCoord.column - currentColumn times
                 for _ in horizontalMoves...(-1) {
-                    let slid = board.slideRight()
+                    let slid = parentBoard.slideRight()
                     assert(slid, "Couldn't slide right")
                 }
                 return true
             } else if horizontalMoves > 0 {
                 // Shift left currentColumn - emptyCoord.column times
                 for _ in 1...horizontalMoves {
-                    let slid = board.slideLeft()
+                    let slid = parentBoard.slideLeft()
                     assert(slid, "Couldn't slide left")
                 }
                 return true
@@ -136,10 +137,13 @@ class TileNode : SKSpriteNode {
         return false
     }
     
-    public func createSubBoard(model: SliderBoard) -> BoardNode {
+    public func createChildBoard(model: SliderBoard) -> BoardNode {
         // Create board with same size, position and texture as the tile's content sprite
         let node = content!
-        let subBoard = BoardNode(model: model, texture: node.texture, rect: node.frame)
+        let subBoard = BoardNode(settings: parentBoard.settings,
+                                 model: model,
+                                 texture: node.texture,
+                                 rect: node.frame)
         // If the content is already being shown then we need to show the new board
         // before we remove the old content. Otherwise, we'll rely on revealTiles
         if !node.isHidden {
