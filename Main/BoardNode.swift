@@ -15,8 +15,8 @@ protocol BoardNodeDelegate: AnyObject {
 }
 
 class BoardNode: SKSpriteNode {
-    // By convention nodes of this type use this default name
-    static let nodeName = "brd"
+    static let nodeName = "board"
+    static let nodeNameBorder = "border"
     
     private var settingsConnections = Set<AnyCancellable>()
     public var settings: SliderSettings { didSet { onSettingsReplaced() } }
@@ -67,10 +67,13 @@ class BoardNode: SKSpriteNode {
             let subTex = subTexture(texture: texture, normRect: normRect)
             let nodeRect = bounds.denormalize(normRect)
             let edgeNode = SKSpriteNode(texture: subTex, size: nodeRect.size)
+            edgeNode.name = BoardNode.nodeNameBorder
             edgeNode.position = nodeRect.mid
+            edgeNode.alpha = 0
             self.addChild(edgeNode)
         }
 
+        // Create tiles
         for ordinal in 0..<model.ordinalPositions.count {
             let normRect = computeNormalizedTileRect(ordinal)
             let subTex = subTexture(texture: texture, normRect: normRect)
@@ -96,28 +99,44 @@ class BoardNode: SKSpriteNode {
     // and then starting each tile's entrance during the stagger timeframe
     // which each last duration.
     public func revealTiles() {
-        let delay: TimeInterval = 0.25
-        let stagger: TimeInterval = 1.0
-        let duration: TimeInterval = 0.5
-        let solvedReveal: TimeInterval = 0.5
-        
-        if model.isSolved {
+        let speedFactor = settings.speedFactor
+        let delay: TimeInterval = speedFactor * 0
+        let stagger: TimeInterval = speedFactor * 1.0
+        let duration: TimeInterval = speedFactor * 0.5
+        let solvedReveal: TimeInterval = speedFactor * 0.5
+
+        if parent == nil {
+            enumerateChildNodes(withName: BoardNode.nodeNameBorder) { (node, stop) in
+                node.alpha = 1
+            }
+            for tile in tiles {
+                tile.alpha = 1
+            }
+        } else if isSolved {
+            enumerateChildNodes(withName: BoardNode.nodeNameBorder) { (node, stop) in
+                node.run(.fadeIn(withDuration: solvedReveal))
+            }
             for tile in tiles {
                 tile.run(.fadeIn(withDuration: solvedReveal))
             }
         } else {
+            enumerateChildNodes(withName: BoardNode.nodeNameBorder) { (node, stop) in
+                node.run(.sequence([
+                    .wait(forDuration: delay + 0.3 * stagger),
+                    .fadeIn(withDuration: 0.7 * stagger + duration),
+                ]))
+            }
             for tile in tiles {
                 if tile.ordinal != model.emptyOrdinal {
-                    let speedFactor = settings.speedFactor
                     let tilePercentile = CGFloat(tile.ordinal) / CGFloat(model.ordinalPositions.count - 1)
                     tile.setScale(0.9)
                     tile.run(.sequence([
-                        .wait(forDuration: speedFactor * (delay + stagger * tilePercentile)),
+                        .wait(forDuration: delay + stagger * tilePercentile),
                         .group([
-                            .scale(to: 1, duration: speedFactor * duration),
-                            .fadeIn(withDuration: speedFactor * duration),
+                            .scale(to: 1, duration: duration),
+                            .fadeIn(withDuration: duration),
                         ]),
-                        ]))
+                    ]))
                 }
             }
         }

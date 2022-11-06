@@ -11,10 +11,10 @@ import SpriteKit
 
 class TileNode : SKSpriteNode {
 
-    static let nodeName = "til"
-    static let nodeNameLabel = "lbl"
-    static let nodeNameCrop = "crp"
-    static let nodeNameContent = "con"
+    static let nodeName = "tile"
+    static let nodeNameLabel = "label"
+    static let nodeNameCrop = "crop"
+    static let nodeNameContent = "content"
 
 
     // The identifier for the tile in the board
@@ -136,12 +136,8 @@ class TileNode : SKSpriteNode {
                                  texture: node.texture,
                                  rect: node.frame)
         // If the content is already being shown then we need to show the new board
-        // before we remove the old content. Otherwise, we'll rely on revealTiles
-        if !node.isHidden {
-            for tile in subBoard.tiles {
-                tile.alpha = 1
-            }
-        }
+        // before we add them and remove the old content
+        subBoard.revealTiles()
         subBoard.zPosition = node.zPosition
         subBoard.alpha = node.alpha
         node.parent!.addChild(subBoard)
