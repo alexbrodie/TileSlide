@@ -15,7 +15,7 @@ final class SliderSettings: ObservableObject {
     // True if tilting device should be used as an input to slide tiles
     @Published var enableTiltToSlide: Bool = false;
     // What set of symbols or glyphs to show for each tile's label
-    @Published var tileLabelType: LabelType = .numbers
+    @Published var tileLabelType: LabelType = .none
     // Color for the labels that contain numbers or glyphs representing each tile
     @Published var tileLabelColor: Color = .init(.sRGB, red: 1, green: 1, blue: 1, opacity: 0.75)
     // Font for the labels that contain the numbers or glyphs representing each tile
@@ -38,6 +38,7 @@ final class SliderSettings: ObservableObject {
 
 // This represents the glyph set used for the labels
 enum LabelType: Hashable, CaseIterable {
+    case none
     case numbers
     case arrows
     /*
@@ -53,31 +54,23 @@ enum LabelType: Hashable, CaseIterable {
     // Gets the set of glyphs associated with the labels property
     var glyphs: LabelGlyphSet {
         switch self {
-        case .numbers:
-            return numbersGlyphs
-        case .arrows:
-            return arrowGlyphs
-            /*
-        case .blackArrows:
-            return blackArrowGlyphs
-        case .whiteArrows:
-            return whiteArrowGlyphs
-        case .sansSerifArrows:
-            return sansSerifArrowGlyphs
-        case .wideHeadedLightBarbArrow:
-            return wideHeadedLightBarbArrowGlyphs
-        case .wideHeadedBarbArrow:
-            return wideHeadedBarbArrowGlyphs
-        case .wideHeadedMediumBarbArrow:
-            return wideHeadedMediumBarbArrowGlyphs
-        case .wideHeadedHeavyBarbArrow:
-            return wideHeadedHeavyBarbArrowGlyphs
-        case .wideHeadedVeryHeavyBarbArrow:
-            return wideHeadedVeryHeavyBarbArrowGlyphs
-             */
+        case .none:             return noneGlyphs
+        case .numbers:          return numbersGlyphs
+        case .arrows:           return arrowGlyphs
+        /*
+        case .blackArrows:      return blackArrowGlyphs
+        case .whiteArrows:      return whiteArrowGlyphs
+        case .sansSerifArrows:  return sansSerifArrowGlyphs
+        case .wideHeadedLightBarbArrow:     return wideHeadedLightBarbArrowGlyphs
+        case .wideHeadedBarbArrow:          return wideHeadedBarbArrowGlyphs
+        case .wideHeadedMediumBarbArrow:    return wideHeadedMediumBarbArrowGlyphs
+        case .wideHeadedHeavyBarbArrow:     return wideHeadedHeavyBarbArrowGlyphs
+        case .wideHeadedVeryHeavyBarbArrow: return wideHeadedVeryHeavyBarbArrowGlyphs
+        */
         }
     }
     func glyphFor(columns: Int, rows: Int, ordinal: Int) -> String {
+        guard self != .none else { return "" }
         if glyphs.columns == columns && glyphs.rows == rows {
             return glyphs.values[ordinal]
         }
@@ -94,6 +87,8 @@ struct LabelGlyphSet {
     // The individual glyph values for each row and column
     var values: [String]
 }
+
+let noneGlyphs = LabelGlyphSet(name: "none", columns: 0, rows: 0, values: [])
 
 let numbersGlyphs = LabelGlyphSet(name: "number", columns: 0, rows: 0, values: [])
 
