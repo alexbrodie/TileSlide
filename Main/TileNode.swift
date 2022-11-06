@@ -43,8 +43,6 @@ class TileNode : SKSpriteNode {
         self.alpha = 0
         self.position = rect.mid
         
-        let coord = model.indexToCoordinate(ordinal)
-        
         var contentNode: SKSpriteNode
         if let texture = texture {
             contentNode = SKSpriteNode(texture: texture, size: rect.size)
