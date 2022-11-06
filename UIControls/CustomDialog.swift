@@ -24,15 +24,16 @@ struct CustomDialog<DialogContent: View>: ViewModifier {
                 .blur(radius: isPresented ? 2 : 0, opaque: true)
             if isPresented {
                 Rectangle()
-                    .foregroundColor(.black.opacity(0.5))
+                    .foregroundColor(.black.opacity(0.25))
                     .ignoresSafeArea()
                     .onTapGesture { isPresented = false }
-                ZStack {
+                VStack {
+                    Spacer()
                     dialogContent
                         .background(RoundedRectangle(cornerRadius: 8)
-                                .foregroundColor(.white)
-                                        .shadow(color: .black, radius: 8)
-                                .padding(-8))
+                            .foregroundColor(Color(UIColor.systemBackground))
+                            .shadow(color: Color(UIColor.systemFill), radius: 16)
+                            .padding(-8))
                 }
                     .padding(32)
             }
