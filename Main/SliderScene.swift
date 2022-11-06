@@ -237,23 +237,55 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     func boardSolved(_ board: BoardNode) {
         let rootBoard: BoardNode = board.lastAncestorOfType()!
         if rootBoard.isRecursivelySolved() {
-            // This is a temp success screen
-            backgroundColor = .white
-            
-            let w = frame.width * 0.6
-            let h = frame.height * 0.6
-            let r = CGRect(x: frame.midX - w / 2, y: frame.midY - h / 2, width: w, height: h)
-            for _ in 0...10 {
-                let n = SKSpriteNode(color: .red, size: CGSize(width: 25, height: 25))
-                n.position = CGPoint(x: r.midX, y: r.minY)
-                addChild(n)
-                let dur = 2.0
-                n.run(.group([
-                    .fadeOut(withDuration: dur),
-                    .move(to: CGPoint(x: lerp(from: r.minX, to: r.maxY, ratio: Double.random(in: 0...1)), y: r.maxY), duration: dur)
-                ])) {
-                    n.removeFromParent()
+            for _ in 0...17 {
+                run(.wait(forDuration: Double.random(in: 0...1))) {
+                    self.firework()
                 }
+            }
+        }
+    }
+    
+    private func firework() {
+        // Define the magic numbers that will create a
+        //  'duration' second animation of
+        //  'particleCount' little sprites of size
+        //  'particleSize' forming a blast extending
+        //  'blastRadius' from a point in the
+        //  'blastZone'
+        let duration: Double = 1.0
+        let particleCount: Int = 23
+        let particleSize = CGSize(width: 3, height: 3)
+        let blastRadius: Double = min(frame.width, frame.height) * Double.random(in: 0.4...0.6)
+        let particleColor = UIColor(hue: Double.random(in: 0...1),
+                                    saturation: Double.random(in: 0.8...1),
+                                    brightness: Double.random(in: 0.5...0.9),
+                                    alpha: 0.75)
+        let blastZone = CGRect(x: frame.minX + frame.width * 0.2,
+                               y: frame.minY + frame.height * 0.3,
+                               width: frame.width * 0.6,
+                               height: frame.height * 0.4)
+
+        let from = CGPoint(x: Double.random(in: blastZone.minX...blastZone.maxX),
+                           y: Double.random(in: blastZone.minY...blastZone.maxY))
+        let initialAngle = Double.random(in: 0..<360)
+        let scatterMin: Double = -90 / Double(particleCount)
+        let scatterMax: Double = 90 / Double(particleCount)
+        for i in 1...particleCount {
+            var angle = initialAngle
+            angle += Double(i * 360) / Double(particleCount)
+            angle += Double.random(in: scatterMin...scatterMax)
+            let to = CGPoint(x: from.x + blastRadius * sin(angle * Double.pi / 180),
+                             y: from.y + blastRadius * cos(angle * Double.pi / 180))
+            
+            let node = SKSpriteNode(color: particleColor, size: particleSize)
+            node.position = from
+            addChild(node)
+            
+            node.run(.group([
+                .fadeOut(withDuration: duration),
+                .move(to: to, duration: duration)
+            ])) {
+                node.removeFromParent()
             }
         }
     }
