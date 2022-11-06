@@ -49,7 +49,7 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     override func didMove(to view: SKView) {
         //setEnableTiltToSlide(true)
         //makeDebugText()
-        setup()
+        newBoard()
     }
     
     override func update(_ currentTime: TimeInterval) {
@@ -181,7 +181,7 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     
     //MARK: - Board management
     
-    private func setup() {
+    public func newBoard() {
         cleanupBoard()
 
         // Pick a board and config magic numbers

@@ -107,22 +107,17 @@ struct MainView: View {
             // HUD
             VStack {
                 Spacer()
-                Button{
-                    withAnimation {
-                        settingsPresented.toggle()
+                HStack {
+                    hudButton("repeat") {
+                        game.newBoard()
                     }
-                } label: {
-                    Image(systemName: "gearshape")
-                        .imageScale(.large)
-                        .padding(4)
-                        .background(Circle()
-                            .foregroundColor(.white.opacity(0.1)))
-                        .foregroundColor(.white.opacity(0.3))
+                    hudButton("gearshape") {
+                        withAnimation {
+                            settingsPresented.toggle()
+                        }
+                    }
                 }
-                    .buttonStyle(.plain)
-                    .padding(16)
             }
-                .ignoresSafeArea()
         }
             .ignoresSafeArea()
             .customDialog(isPresented: $settingsPresented) {
@@ -147,11 +142,27 @@ struct MainView: View {
                     .ignoresSafeArea()
             }
     }
+    
+    private func hudButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+        return Button {
+            action()
+        } label: {
+            Image(systemName: systemName)
+                .imageScale(.large)
+                .padding(4)
+                .background(Circle()
+                    .foregroundColor(.white.opacity(0.1)))
+                .foregroundColor(.white.opacity(0.3))
+        }
+            .buttonStyle(.plain)
+            .padding(16)
+    }
+    
 }
 
 struct MainView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(SliderSettings())
-        //MainView()
+        //SettingsView(SliderSettings())
+        MainView()
     }
 }
