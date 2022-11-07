@@ -99,7 +99,7 @@ struct MainView: View {
         ZStack {
             // Main
             SpriteView(scene: game)
-                .ignoresSafeArea()
+                //.ignoresSafeArea()
                 .blur(radius: settingsPresented ? 2 : 0, opaque: true)
                 .onAppear {
                     game.settings = settings
@@ -108,6 +108,9 @@ struct MainView: View {
             VStack {
                 Spacer()
                 HStack {
+                    hudButton("wand.and.stars") {
+                        game.solve(0.75)
+                    }
                     hudButton("repeat") {
                         game.newBoard()
                     }
@@ -119,6 +122,7 @@ struct MainView: View {
                 }
             }
         }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .customDialog(isPresented: $settingsPresented) {
                 // Settings content
@@ -139,7 +143,7 @@ struct MainView: View {
                             }
                         }
                     }
-                    .ignoresSafeArea()
+                    //.ignoresSafeArea()
             }
     }
     

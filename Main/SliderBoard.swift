@@ -13,7 +13,8 @@ import Foundation
 // the grid are given an index reading left to right, top to bottom.
 // Tiles are then identified by their "ordinal" - the name we give to the
 // index of the solved position of the tile.
-class SliderBoard {
+class SliderBoard: Hashable {
+    
     struct Coordinate {
         let column: Int
         let row: Int
@@ -31,6 +32,31 @@ class SliderBoard {
     // Inner value used to cache results of isSolved
     private var isSolvedResult: Bool?
     
+    static func ==(lhs: SliderBoard, rhs: SliderBoard) -> Bool {
+        return  lhs.columns == rhs.columns &&
+                lhs.rows == rhs.rows &&
+                lhs.emptyOrdinal == rhs.emptyOrdinal &&
+                lhs.ordinalPositions == rhs.ordinalPositions
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(ordinalPositions)
+    }
+
+//    public var hashValue: Int {
+//        // It's sufficient to just use ordinalPositions for hash values
+//        // as the other information generally is similar. Each element of
+//        // the array is a integer less than the number of tiles, so we can
+//        // construct a (ordinalPositions.count) digit number of base
+//        // (colums * rows).
+//        let base = columns * rows;
+//        var result = 0
+//        for i in ordinalPositions {
+//            result = base * result + i
+//        }
+//        return result
+//    }
+    
     public init() {
         columns = 0
         rows = 0
@@ -47,6 +73,13 @@ class SliderBoard {
         ordinalPositions = Array(0..<(inColumns * inRows))
     }
     
+    public init(_ cloneFrom: SliderBoard) {
+        columns = cloneFrom.columns
+        rows = cloneFrom.rows
+        emptyOrdinal = cloneFrom.emptyOrdinal
+        ordinalPositions = cloneFrom.ordinalPositions
+    }
+        
     public var isSolved: Bool {
         get {
             if isSolvedResult == nil {
@@ -99,6 +132,67 @@ class SliderBoard {
         ordinalPositions.swapAt(emptyOrdinal, otherOrd)
         isSolvedResult = nil
         return otherOrd
+    }
+    
+    // Returns an array moves that if taken in order would lead to a solved board.
+    // Each move is defined by the ordinal of the tile adjacent to the empty square
+    // that is being moved.
+    public func calculateSolution() -> [Int] {
+        guard !isSolved else { return [Int]() }
+
+        // Processing queue used to implement breadth first traversal
+        struct Move {
+            // The ordinal that was moved
+            var ordinals: [Int]
+            // The board state after ordinals were moved
+            var board: SliderBoard
+        }
+        var queue = [Move]()
+        queue.append(Move(ordinals: [], board: self))
+        
+        // A lookup to prevent processing of the same board twice
+        var seen = Set<SliderBoard>()
+        
+        // The offsets define all the possible things we can do
+        struct Offset {
+            var dx: Int
+            var dy: Int
+        }
+        let offsets: [Offset] = [
+            Offset(dx: 0,  dy: -1),
+            Offset(dx: 1,  dy: 0),
+            Offset(dx: 0,  dy: 1),
+            Offset(dx: -1, dy: 0)
+        ]
+
+        // Stats, for debugging mostly
+        var movesAttempted: Int = 0
+        var movedPerformed: Int = 0
+        var novelBoards: Int = 0
+
+        while !queue.isEmpty {
+            let current = queue.removeFirst()
+            for offset in offsets {
+                movesAttempted += 1
+                let nextBoard = SliderBoard(current.board)
+                if let nextOrdinal = nextBoard.swapWithEmpty(horizontalOffset: offset.dx, verticalOffset: offset.dy) {
+                    movedPerformed += 1
+                    var nextOrdinals = current.ordinals
+                    nextOrdinals.append(nextOrdinal)
+                    if nextBoard.isSolved {
+                        return nextOrdinals
+                    }
+                    if seen.insert(nextBoard).inserted {
+                        // Unsolved, not yet seen before board
+                        novelBoards += 1
+                        queue.append(Move(ordinals: nextOrdinals, board: nextBoard))
+                    }
+                }
+            }
+        }
+                
+        assertionFailure("Unsolvable board")
+        return [Int]()
     }
     
     private func calculateIsSolved() -> Bool {

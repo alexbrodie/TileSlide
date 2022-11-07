@@ -121,10 +121,10 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
         }
         
         // Fallback handling - this happens on ancestors first, i.e. the routing phase
-        if let tile = node as? TileNode {
-            subShuffleTile(tile)
-            return true
-        }
+//        if let tile = node as? TileNode {
+//            subShuffleTile(tile)
+//            return true
+//        }
         
         return false
     }
@@ -204,6 +204,30 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
         addChild(board)
         board.revealTiles()
         setCurrentBoard(board)
+    }
+    
+    // Solves the board a fraction of the amount where 0 is no change and 1 is full solved
+    public func solve(_ amount: Double) {
+        guard let board = currentBoard else { return }
+
+        let solution = board.model.calculateSolution()
+        var stepNum = 0
+        let stepCount = Int(Double(solution.count) * amount)
+//        for i in 0..<stepCount {
+//            _ = board.slide()
+//        }
+        func step() {
+            if stepNum < stepCount {
+                _ = board.slide(solution[stepNum]) {
+                    stepNum += 1
+                    step()
+                }
+            } else {
+                board.speed *= 0.5
+            }
+        }
+        board.speed *= 2
+        step()
     }
     
     private func cleanupBoard() {

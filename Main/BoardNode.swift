@@ -188,30 +188,90 @@ class BoardNode: SKSpriteNode {
         }
     }
     
-    // Move one tile left into empty slot if possible
-    public func slideLeft() -> Bool {
-        return slideToEmpty(horizontalOffset: 1, verticalOffset: 0)
+    // Move one tile left into empty slot if possible.
+    public func slideLeft(completion: (() -> Void)? = nil) -> Bool {
+        return slideToEmpty(horizontalOffset: 1, verticalOffset: 0, completion: completion)
     }
     
     // Move one tile right into empty slot if possible
-    public func slideRight() -> Bool {
-        return slideToEmpty(horizontalOffset: -1, verticalOffset: 0)
+    public func slideRight(completion: (() -> Void)? = nil) -> Bool {
+        return slideToEmpty(horizontalOffset: -1, verticalOffset: 0, completion: completion)
     }
     
     // Move one tile up into empty slot if possible
-    public func slideUp() -> Bool {
-        return slideToEmpty(horizontalOffset: 0, verticalOffset: 1)
+    public func slideUp(completion: (() -> Void)? = nil) -> Bool {
+        return slideToEmpty(horizontalOffset: 0, verticalOffset: 1, completion: completion)
     }
     
     // Move one tile down into empty slot if possible
-    public func slideDown() -> Bool {
-        return slideToEmpty(horizontalOffset: 0, verticalOffset: -1)
+    public func slideDown(completion: (() -> Void)? = nil) -> Bool {
+        return slideToEmpty(horizontalOffset: 0, verticalOffset: -1, completion: completion)
     }
     
-    private func slideToEmpty(horizontalOffset: Int, verticalOffset: Int) -> Bool {
+    // Slide specified tile torwds the empty slot if possible
+    public func slide(_ ordinal: Int, completion: (() -> Void)? = nil) -> Bool {
+        guard !isSolved else { return false }
+        // We need to determine which direction to move and
+        // how many times
+        var dx: Int = 0
+        var dy: Int = 0
+        var moves: Int = 0
+        // Determine that based on difference between the empty
+        // tile and the specified tile
+        let emptyCoord = model.getOrdinalCoordinate(model.emptyOrdinal)
+        let tileCoord = model.getOrdinalCoordinate(ordinal)
+        if tileCoord.column == emptyCoord.column {
+            let verticalMoves = tileCoord.row - emptyCoord.row
+            if verticalMoves < 0 {
+                dy = -1  // Shift down
+                moves = -verticalMoves
+            } else if verticalMoves > 0 {
+                dy = 1  // Shift up
+                moves = verticalMoves
+            }
+        } else if tileCoord.row == emptyCoord.row {
+            let horizontalMoves = tileCoord.column - emptyCoord.column
+            if horizontalMoves < 0 {
+                dx = -1  // Shift right
+                moves = -horizontalMoves
+            } else if horizontalMoves > 0 {
+                dx = 1  // Shift left
+                moves = horizontalMoves
+            }
+        }
+        guard moves > 0 else { return false }
+        // We consolidate all completions so that we only fire once for the caller
+        // when all of our calls complete. Add an extra one in case all the child
+        // calls fire synchronously to be sure that we delay until our final call
+        // to proxy.
+        var finished: Int = 0
+        var expected: Int = 1
+        func proxy() {
+            finished += 1
+            if finished == expected {
+                completion?()
+            }
+        }
+        for _ in 1...moves {
+            if slideToEmpty(horizontalOffset: dx, verticalOffset: dy, completion: proxy) {
+                expected += 1
+            } else {
+                assertionFailure("Couldn't slide when we expected to")
+            }
+        }
+        proxy()
+        return true
+    }
+    
+    // Move the tile with the offset relative to the empty slot if possible.
+    // If so, returns true and calls completion handler when move completes.
+    // If not, returns false and doesn't call completion
+    private func slideToEmpty(horizontalOffset: Int,
+                              verticalOffset: Int,
+                              completion: (() -> Void)? = nil) -> Bool {
         let wasSolved = model.isSolved
         if let ordinal = model.swapWithEmpty(horizontalOffset: horizontalOffset, verticalOffset: verticalOffset) {
-            updateTilePosition(ordinal)
+            updateTilePosition(ordinal, completion: completion)
             if model.isSolved {
                 solved()
             } else if wasSolved {
@@ -224,7 +284,7 @@ class BoardNode: SKSpriteNode {
     }
     
     // Update the position of the node to match its model
-    private func updateTilePosition(_ ordinal: Int) {
+    private func updateTilePosition(_ ordinal: Int, completion: (() -> Void)? = nil) {
         let tile = tiles[ordinal]
         let bounds = CGRect(midX: 0, midY: 0, width: size.width, height: size.height)
         let newPos = bounds.denormalize(computeNormalizedTileRect(ordinal)).mid
@@ -244,9 +304,12 @@ class BoardNode: SKSpriteNode {
                     .wait(forDuration: Double.maximum(moveDuration - clickLeadIn, 0)),
                     clickSound,
                 ]),
-            ]))
+            ])) {
+                completion?()
+            }
         } else {
             tile.position = newPos
+            completion?()
         }
     }
     

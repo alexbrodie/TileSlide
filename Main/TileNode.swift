@@ -84,48 +84,8 @@ class TileNode : SKSpriteNode {
     }
     
     // Moves the specified tile if possible
-    public func slide() -> Bool {
-        let m = parentBoard.model
-        guard !m.isSolved else { return false }
-        let emptyCoord = m.getOrdinalCoordinate(m.emptyOrdinal)
-        let tileCoord = m.getOrdinalCoordinate(ordinal)
-        if tileCoord.column == emptyCoord.column {
-            let verticalMoves = tileCoord.row - emptyCoord.row
-            if verticalMoves < 0 {
-                // Shift down emptyCoord.row - currentRow times
-                for _ in verticalMoves...(-1) {
-                    let slid = parentBoard.slideDown()
-                    assert(slid, "Couldn't slide down")
-                }
-                return true
-            } else if verticalMoves > 0 {
-                // Shift up currentRow - emptyCoord.row times
-                for _ in 1...verticalMoves {
-                    let slid = parentBoard.slideUp()
-                    assert(slid, "Couldn't slide up")
-                }
-                return true
-            }
-        } else if tileCoord.row == emptyCoord.row {
-            let horizontalMoves = tileCoord.column - emptyCoord.column
-            if horizontalMoves < 0 {
-                // Shift right emptyCoord.column - currentColumn times
-                for _ in horizontalMoves...(-1) {
-                    let slid = parentBoard.slideRight()
-                    assert(slid, "Couldn't slide right")
-                }
-                return true
-            } else if horizontalMoves > 0 {
-                // Shift left currentColumn - emptyCoord.column times
-                for _ in 1...horizontalMoves {
-                    let slid = parentBoard.slideLeft()
-                    assert(slid, "Couldn't slide left")
-                }
-                return true
-            }
-        }
-        // Can't move
-        return false
+    public func slide(completion: (() -> Void)? = nil) -> Bool {
+        return parentBoard.slide(ordinal, completion: completion)
     }
     
     public func createChildBoard(model: SliderBoard) -> BoardNode {
