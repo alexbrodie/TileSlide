@@ -49,6 +49,7 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     override func didMove(to view: SKView) {
         //setEnableTiltToSlide(true)
         //makeDebugText()
+        createCamera()
         newBoard()
     }
     
@@ -179,6 +180,31 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
         debugText = label
     }
     
+    private func createCamera() {
+        let cameraNode = SKCameraNode()
+        cameraNode.position = getCameraPos()
+        cameraNode.setScale(getCameraScale())
+        addChild(cameraNode)
+        camera = cameraNode
+    }
+    
+    private func getCameraPos() -> CGPoint {
+        if let board = currentBoard {
+            return convert(board.frame.mid, from: board.parent!)
+        } else {
+            return frame.mid
+        }
+    }
+    
+    private func getCameraScale() -> CGFloat {
+        if let board = currentBoard {
+            let r = board.size / size
+            return max(r.width, r.height)
+        } else {
+            return 1
+        }
+    }
+    
     //MARK: - Board management
     
     public func newBoard() {
@@ -186,7 +212,7 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
 
         // Pick a board and config magic numbers
         let textureName = String(format: "Doguillo-%d", Int.random(in: 1...19))
-        let model = SliderBoard(columns: 3, rows: 3, emptyOrdinal: 8)
+        let model = SliderBoard(size: 3)
 
         // Construct board from the asset name and model definition
         let texture = SKTexture(imageNamed: textureName)
@@ -200,10 +226,11 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
 //            subBoard = subBoard.tiles[i].createSubBoard(model: subModel)
 //            subBoard.shuffle()
 //        }
-
+        
+        //board.tiles[5].createChildBoard(model: SliderBoard(size: 3)).shuffle(2)
+        
         addChild(board)
-        board.revealTiles()
-        setCurrentBoard(board)
+        setCurrentBoard(board.findUnsolved() ?? board)
     }
     
     // Solves the board a fraction of the amount where 0 is no change and 1 is full solved
@@ -239,6 +266,22 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     
     private func setCurrentBoard(_ board: BoardNode?) {
         currentBoard = board
+        board?.revealTiles()
+        // Update camera position and scale
+        if let camera = camera {
+            let waitDuration = settings.speedFactor * 0.25
+            let cameraDuration = settings.speedFactor * 2.0
+            let pos = getCameraPos()
+            let scale = getCameraScale()
+            let moveAction = SKAction.move(to: pos, duration: cameraDuration)
+            moveAction.timingMode = .easeInEaseOut
+            let scaleAction = SKAction.scale(to: scale, duration: cameraDuration)
+            scaleAction.timingMode = .easeInEaseOut
+            camera.run(.sequence([
+                .wait(forDuration: waitDuration),
+                .group([ moveAction, scaleAction ]),
+            ]))
+        }
     }
     
     // Turns a tile into a sub-board if it's not already and then shuffles it
@@ -247,8 +290,7 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
         if subBoard == nil {
             let parentModel = tile.parentBoard.model
             let model = SliderBoard(columns: parentModel.columns,
-                                    rows: parentModel.rows,
-                                    emptyOrdinal: tile.ordinal)
+                                    rows: parentModel.rows)
             subBoard = tile.createChildBoard(model: model)
         }
         setCurrentBoard(subBoard)
@@ -259,8 +301,11 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
     
     // Called when the board enters the solved state
     func boardSolved(_ board: BoardNode) {
-        let rootBoard: BoardNode = board.lastAncestorOfType()!
-        if rootBoard.isRecursivelySolved() {
+        let unsolved = board.findUnsolved()
+        if currentBoard == board {
+            setCurrentBoard(unsolved)
+        }
+        if unsolved == nil {
             for _ in 0...17 {
                 run(.wait(forDuration: Double.random(in: 0...1))) {
                     self.firework()
@@ -278,12 +323,12 @@ class SliderScene: SKScene, ObservableObject, BoardNodeDelegate {
         //  'blastZone'
         let duration: Double = 1.0
         let particleCount: Int = 23
-        let particleSize = CGSize(width: 3, height: 3)
+        let particleSize = CGSize(width: 5, height: 5)
         let blastRadius: Double = min(frame.width, frame.height) * Double.random(in: 0.4...0.6)
         let particleColor = UIColor(hue: Double.random(in: 0...1),
                                     saturation: Double.random(in: 0.8...1),
                                     brightness: Double.random(in: 0.5...0.9),
-                                    alpha: 0.75)
+                                    alpha: 1)
         let blastZone = CGRect(x: frame.minX + frame.width * 0.2,
                                y: frame.minY + frame.height * 0.3,
                                width: frame.width * 0.6,

@@ -73,6 +73,17 @@ class SliderBoard: Hashable {
         ordinalPositions = Array(0..<(inColumns * inRows))
     }
     
+    public convenience init(columns inColumns: Int,
+                            rows inRows: Int) {
+        self.init(columns: inColumns,
+                  rows: inRows,
+                  emptyOrdinal: inColumns * inRows - 1)
+    }
+    
+    public convenience init(size inSize: Int) {
+        self.init(columns: inSize, rows: inSize)
+    }
+    
     public init(_ cloneFrom: SliderBoard) {
         columns = cloneFrom.columns
         rows = cloneFrom.rows
@@ -169,6 +180,7 @@ class SliderBoard: Hashable {
         var movesAttempted: Int = 0
         var movedPerformed: Int = 0
         var novelBoards: Int = 0
+        var dupeBoards: Int = 0
 
         while !queue.isEmpty {
             let current = queue.removeFirst()
@@ -186,6 +198,9 @@ class SliderBoard: Hashable {
                         // Unsolved, not yet seen before board
                         novelBoards += 1
                         queue.append(Move(ordinals: nextOrdinals, board: nextBoard))
+                    } else {
+                        // nextBoard was already in seen, so it's been processed
+                        dupeBoards += 1
                     }
                 }
             }

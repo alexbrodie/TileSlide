@@ -95,14 +95,20 @@ class TileNode : SKSpriteNode {
                                  model: model,
                                  texture: node.texture,
                                  rect: node.frame)
-        // If the content is already being shown then we need to show the new board
-        // before we add them and remove the old content
-        subBoard.revealTiles()
+        // If self is already shown, we should reveal the subBoard too
+        // (it's created initially hidden) before we remove the old content
+        if alpha == 1 {
+            subBoard.revealTiles()
+        }
         subBoard.zPosition = node.zPosition
         subBoard.alpha = node.alpha
         node.parent!.addChild(subBoard)
         node.removeFromParent()
+        node.alpha = 0
         content = subBoard
+        // If self was hidden, then subBoard wouldn't be revealed
+        // above, so this won't make anything visible yet
+        alpha = 1
         return subBoard
     }
 }

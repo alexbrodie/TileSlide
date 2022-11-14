@@ -87,6 +87,13 @@ class BoardNode: SKSpriteNode {
             self.tiles.append(tile)
         }
         
+        // Making the empty tile backmost is extra paranoia
+        emptyTile.zPosition = -1
+
+        // Adding a red shade over the empty tile can be handy
+        // for debugging (but not by default)
+        //emptyTile.addChild(SKSpriteNode(color: .red.withAlphaComponent(0.5), size: emptyTile.size))
+        
         // Set up initial sinks
         onSettingsReplaced()
     }
@@ -105,29 +112,37 @@ class BoardNode: SKSpriteNode {
         let duration: TimeInterval = speedFactor * 0.5
         let solvedReveal: TimeInterval = speedFactor * 0.5
 
-        if parent == nil {
+        if parent == nil || isPaused {
             enumerateChildNodes(withName: BoardNode.nodeNameBorder) { (node, stop) in
                 node.alpha = 1
             }
             for tile in tiles {
-                tile.alpha = 1
+                if isSolved || model.emptyOrdinal != tile.ordinal {
+                    tile.alpha = 1
+                }
             }
         } else if isSolved {
             enumerateChildNodes(withName: BoardNode.nodeNameBorder) { (node, stop) in
-                node.run(.fadeIn(withDuration: solvedReveal))
+                if node.alpha != 1 {
+                    node.run(.fadeIn(withDuration: solvedReveal))
+                }
             }
             for tile in tiles {
-                tile.run(.fadeIn(withDuration: solvedReveal))
+                if tile.alpha != 1 {
+                    tile.run(.fadeIn(withDuration: solvedReveal))
+                }
             }
         } else {
             enumerateChildNodes(withName: BoardNode.nodeNameBorder) { (node, stop) in
-                node.run(.sequence([
-                    .wait(forDuration: delay + 0.3 * stagger),
-                    .fadeIn(withDuration: 0.7 * stagger + duration),
-                ]))
+                if node.alpha != 1 {
+                    node.run(.sequence([
+                        .wait(forDuration: delay + 0.3 * stagger),
+                        .fadeIn(withDuration: 0.7 * stagger + duration),
+                    ]))
+                }
             }
             for tile in tiles {
-                if tile.ordinal != model.emptyOrdinal {
+                if tile.ordinal != model.emptyOrdinal && tile.alpha != 1 {
                     let tilePercentile = CGFloat(tile.ordinal) / CGFloat(model.ordinalPositions.count - 1)
                     tile.setScale(0.9)
                     tile.run(.sequence([
@@ -359,7 +374,7 @@ class BoardNode: SKSpriteNode {
         }
 
         emptyTile.run(.fadeOut(withDuration: duration))
-
+        
         if let tile: TileNode = firstAncestorOfType() {
             // self is an unsolved sub-board of a tile which we
             // want to hide the label for
@@ -395,6 +410,47 @@ class BoardNode: SKSpriteNode {
             }
         }
         return true
+    }
+    
+    // Finds the deepest descendant of this board and then recursively
+    // again for any ancestors all the way to the root in order to find
+    // a determinstic good default active board to use from the hierarchy
+    // closest to the one provided.
+    public func findUnsolved() -> BoardNode? {
+        if let match = findUnsolvedDescend() {
+            return match
+        }
+        
+        var child = self
+        while true {
+            guard let parent: BoardNode = child.parent?.firstAncestorOfType() else {
+                return nil
+            }
+            
+            for tile in parent.tiles {
+                if tile.childBoard == child {
+                    // This was already processed, make sure we skip
+                    // it so we don't create an accienteal loop
+                } else {
+                    if let match = parent.findUnsolvedDescend() {
+                        return match
+                    }
+                }
+            }
+            
+            child = parent
+        }
+    }
+    
+    private func findUnsolvedDescend() -> BoardNode? {
+        for tile in tiles {
+            if let child = tile.childBoard,
+               let unsolved = child.findUnsolvedDescend() {
+                return unsolved;
+            }
+        }
+        guard isSolved else { return self }
+        return nil
     }
     
     // Generate haptics appropriate for a collision
