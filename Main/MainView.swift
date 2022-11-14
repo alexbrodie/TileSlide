@@ -11,13 +11,14 @@ import SpriteKit
 
 struct SettingsView: View {
     @ObservedObject private var settings: SliderSettings
+    @State private var selectedTab = "Label"
     
     init(_ settings: SliderSettings) {
         self.settings = settings
     }
     
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             //Section(header: Text("General")) {
             VStack {
                 Slider(value: $settings.speedFactor, in: 0...3) {
@@ -35,6 +36,7 @@ struct SettingsView: View {
             .tabItem {
                 Label("General", systemImage: "gear")
             }
+            .tag("General")
             //Section(header: Text("Labels")) {
             VStack {
                 Picker("Label type", selection: $settings.tileLabelType) {
@@ -67,6 +69,7 @@ struct SettingsView: View {
             .tabItem {
                 Label("Label", systemImage: "number")
             }
+            .tag("Label")
             //Section(header: Text("Debug")) {
             VStack {
                 // Version
@@ -85,6 +88,7 @@ struct SettingsView: View {
             .tabItem {
                 Label("Info", systemImage: "info")
             }
+            .tag("Info")
         }
         .frame(height: 200)
     }
