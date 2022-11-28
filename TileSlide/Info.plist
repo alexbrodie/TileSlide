@@ -2,6 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>UILaunchScreens</key>
+	<dict>
+		<key>UILaunchScreenDefinitions</key>
+		<array>
+			<dict>
+				<key>UILaunchScreenIdentifier</key>
+				<string></string>
+				<key>UIImageName</key>
+				<string></string>
+			</dict>
+		</array>
+		<key>UIURLToLaunchScreenAssociations</key>
+		<dict/>
+		<key>UIDefaultLaunchScreen</key>
+		<string></string>
+	</dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
